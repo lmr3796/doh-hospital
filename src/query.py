@@ -143,7 +143,7 @@ def parse_doc_input_tag(input_tag):
 	DD = value[5:7]
 	X = chr( int(value[7]) + (ord('A') - 1) )
 	time = YYYY, MM, DD, X
-	id = value[8:10]
+	dep_id = value[8:10]
 	doc_num_in_slot = value[-1]
 	return time, id, doc_num_in_slot
 
@@ -280,10 +280,10 @@ def get_rand_num_from_doc_page(doc_page):
 	if target_tag is None:
 		raise NameError('''Can't find RandNumb''')
 	return str(target.name), str(target.value)
-def reg_handler(id=None, birthday=None, name=None, gender=None, native=None, code=None):
+def register(iden=None, birthday=None, name=None, gender=None, native=None, code=None):
 	missing_arg = false
 	missing_arr = []
-	if id is None:
+	if iden is None:
 		missing_arg = True
 		missing_arr.add({'id':u'身分證字號'})
 	if birthday is None:
