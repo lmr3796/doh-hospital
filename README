@@ -1,2 +1,7 @@
 This is a part of 掛號王
-Which works for hospitals of 行政院衛生署's format
+Which works to fit hospitals of 行政院衛生署's format
+
+src/*.py are prototypes, but usually it works on most hospitals.
+
+To deploying it, just make a directory for each hospital, and put src/*.py under it.
+It works after configuring Apache
