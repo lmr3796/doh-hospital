@@ -280,7 +280,16 @@ def get_rand_num_from_doc_page(doc_page):
 	if target_tag is None:
 		raise NameError('''Can't find RandNumb''')
 	return str(target.name), str(target.value)
-def register(iden=None, birthday=None, name=None, gender=None, native=None, code=None):
+def register(iden=None, birthday=None, name=None,
+			 gender=None, native=None, code=None,
+			 doc_id=None, dept_id=None):
+	
+	if (dept_id is None) != (doc_id is None):
+		raise NameError('Bad dept_id or doc_id!')
+	global all_dept, all_doc
+	if all_doc is None:
+		all_doc = get_all_doc()
+
 	missing_arg = false
 	missing_arr = []
 	if iden is None:
@@ -301,10 +310,11 @@ def register(iden=None, birthday=None, name=None, gender=None, native=None, code
 	if need_check_code() and code is None:
 		missing_arg = True
 		missing_arr.add({'code':'code:http://ooxxx.ooxx'})
-	
 	if missing_arg:
 		return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
-
+	#After getting all needed info
+	page = get_page(method='POST', path=REG_PATH)		
+	
 def main():
 	global all_dept, all_doc
 	all_dept = get_all_dept()
