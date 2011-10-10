@@ -12,10 +12,12 @@ import datetime
 import pickle
 
 #Server Constants
-SERVER = 'chyiwww01.chyi.doh.gov.tw'
-DEP_PATH = '/CHOOSEDEP1.ASP'
-DOC_PATH = '/FirstReg.asp'
-REG_PATH = '/PatReg.asp'
+#SERVER = 'chyiwww01.chyi.doh.gov.tw'
+SERVER = 'tygh-netreg.tygh.doh.gov.tw'
+WWW_PATH = '/NetReg'
+DEP_PATH = WWW_PATH + '/CHOOSEDEP1.ASP'
+DOC_PATH = WWW_PATH + '/FirstReg.asp'
+REG_PATH = WWW_PATH + '/PatReg.asp'
 #HTTP connection basics
 basic_headers = {
 		'Host': SERVER,
@@ -363,8 +365,11 @@ def main():
 	Test case:
 	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/10/14早上
 	'''
-	do_registration(iden='E123456789', birthday='1990-05-22', name=u'王小明', gender='1', native='1', code=False,
-					time='10010141', doc_id='9', dept_id='02')
+	'''
+	do_registration(iden='E123456789', birthday='1990-05-22', name=u'王小明', gender='1', native='1',
+					code=False, time='10010141', doc_id='9', dept_id='02')
+	'''
+	dept_handler()
 
 if __name__ == "__main__":
 	main()
