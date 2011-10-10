@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 #coding=utf8
+import httplib
 from httplib import HTTPConnection
 from urllib import urlencode
 from BeautifulSoup import BeautifulSoup
@@ -57,13 +58,22 @@ def print_http_conn_status(conn):
 	print >> sys.stderr, 'RESPONSE'
 
 def get_page( hostname, pathname='/', method='GET', headers=basic_headers, dataset=basic_dataset ):
-	global cookieValue
+	global cookieValue, conn
 	params = urlencode(dataset)
 	if method == 'GET' and params != '':
 		pathname += '?'+params
 	if cookieValue is not None:
 		headers['Cookies'] = cookieValue
-	conn.request(method, pathname, params, headers)
+
+	try:
+		conn.request(method, pathname, params, headers)
+	except httplib.CannotSendRequest:
+		conn = HTTPConnection(SERVER)
+	except:
+		raise
+	else:
+		pass
+
 	response = conn.getresponse()
 	for header in response.getheaders():
 		if header[0]=='set-cookie':
@@ -214,9 +224,8 @@ def get_all_doc_by_parsing(by_id_file_name='doc_by_id.pickle', by_dept_file_name
 		for doc_name, input_tag_set in parse_doc_page(get_doc_page(dept_id)).iteritems():
 			doc_id = str(len(doc_by_id))
 			doc_by_id[doc_id] = doc_name, dept_id, input_tag_set
-
-			#doc_by_dept[dept_id]['name'][doc_name] = doc_id
 			doc_by_dept[dept_id][doc_id] = doc_name
+
 	print >> sys.stderr, 'All departments parsed!'
 	by_id_file = open(by_id_file_name, 'wb')
 	by_dept_file = open(by_dept_file_name, 'wb')
@@ -333,25 +342,33 @@ def register(iden=None, birthday=None, name=None,
 
 def do_registration(iden, birthday, name, gender, native, code, time, doc_id, dept_id):
 	#After getting all needed info
-
-	#There are some hidden input form needed to be done
-	doc_page_soup = BeautifulSoup(get_doc_page(dept_id))
-	hidden_input_form = doc_page_soup.find('form', attrs={'method':'POST', 'name':'RegFrm'}).findAll('input', type='hidden')
-	hidden_dataset={}
-	for input_tag in hidden_input_form:
-		hidden_dataset[input_tag['name']] = input_tag['value']
-	'''
 	dataset={
 				#Required patient info
-				'id_no'		:iden
-				'BirthY'	:
-				'BirthM'	:
-				'BirthD'	:
-				'PatName'	:name
-				'sex'		:gender		
+				'id_no'		:iden,
+				'BirthY'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(1)) - 1911),
+				'BirthM'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(2))),
+				'BirthD'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(3))),
+				'PatName'	:name,
+				'sex'		:gender,
+				'origid'	:nation
 			}
-	'''
-	print hidden_dataset
+
+	#There are some hidden input form needed to be fetched
+	doc_page_soup = BeautifulSoup(get_doc_page(dept_id))
+	hidden_input_tags = doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input', type='hidden')
+	for input_tag in hidden_input_tags:
+		dataset[input_tag['name']] = input_tag['value']
+	
+	#Simulate the javascript and fill in the missing hidden value
+	dataset['opt_keycheck'] = 'Y'
+	dataset['optTemp'] = '' 
+	dataset['opt'] = ''
+	
+	#Finish the POST FORM
+	button = doc_page_soup.find('input', attrs={'type':'submit','id':re.compile(r'''button(\w+)''')})	
+	dataset[button['id']]=button['value']
+	
+	print dataset
 
 
 def main():
@@ -364,10 +381,9 @@ def main():
 	Test case:
 	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/10/14早上
 	'''
-	'''
+	
 	do_registration(iden='E123456789', birthday='1990-05-22', name=u'王小明', gender='1', native='1',
 					code=False, time='10010141', doc_id='9', dept_id='02')
-	'''
 	dept_handler()
 
 if __name__ == "__main__":

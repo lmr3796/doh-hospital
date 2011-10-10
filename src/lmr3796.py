@@ -2,7 +2,8 @@
 #coding=utf8
 
 #Running PATH
-RUNNING='/srv/www/chyi/'
+LOCAL_SERVER_PATH = '/srv/www/lmr/'
+RUNNING = LOCAL_SERVER_PATH + 'chyi/'
 import os, sys, web
 os.chdir(RUNNING)
 sys.path.append(RUNNING)
