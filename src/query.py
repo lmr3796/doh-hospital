@@ -1,4 +1,4 @@
-#/usr/bin/env python
+#! /usr/bin/env python
 #coding=utf8
 from httplib import HTTPConnection
 from urllib import urlencode
@@ -10,13 +10,13 @@ import json
 import time
 import datetime
 import pickle
-import web
 
 #Server Constants
 SERVER = 'chyiwww01.chyi.doh.gov.tw'
-DEP_PATH = '/CHOOSEDEP1.ASP'
-DOC_PATH = '/FirstReg.asp'
-REG_PATH = '/PatReg.asp'
+WWW_PATH = ''
+DEP_PATH = WWW_PATH + '/CHOOSEDEP1.ASP'
+DOC_PATH = WWW_PATH + '/FirstReg.asp'
+REG_PATH = WWW_PATH + '/PatReg.asp'
 #HTTP connection basics
 basic_headers = {
 		'Host': SERVER,
@@ -51,7 +51,7 @@ def print_http_conn_status(conn):
 	response = conn.getresponse()
 	print >> sys.stderr, response.status, response.reason
 	print >> sys.stderr, response.getheaders()
-	
+
 
 	print >> sys.stderr, '------------'
 	print >> sys.stderr, 'RESPONSE'
@@ -80,10 +80,10 @@ def get_dept_page():
 	except:
 		raise
 
-def get_doc_page(dept_id):
+def get_doc_page(dept_id, method='GET'):
 	headers = basic_headers.copy()
 	dataset = basic_dataset.copy()
-	
+
 	try:
 		dept_page = get_page( SERVER, DEP_PATH, 'GET', headers, dataset )
 	except:
@@ -100,7 +100,7 @@ def get_doc_page(dept_id):
 		})
 
 	try:
-		doc_page = get_page( SERVER, DOC_PATH, 'POST', headers, dataset )
+		doc_page = get_page( SERVER, DOC_PATH, method, headers, dataset )
 	except:
 		raise
 	return doc_page
@@ -119,9 +119,9 @@ def parse_doc_page(doc_page):
 	#Encoding error on some pages....
 	doc_soup = BeautifulSoup(unicode(doc_page, 'big5', 'ignore'))
 	space_pattern = re.compile(r'\s+')
-	
+
 	slots_by_doctor = {}
-	
+
 	for td in doc_soup.findAll('td',attrs={'class': re.compile('schedule\w'), 'headers': re.compile('b(\w+) a(\w+)')}):
 		for input in td.findAll('input'):
 			input_tag = str(input)
@@ -143,7 +143,7 @@ def parse_doc_input_tag(input_tag):
 	DD = value[5:7]
 	X = chr( int(value[7]) + (ord('A') - 1) )
 	time = YYYY, MM, DD, X
-	id = value[8:10]
+	dep_id = value[8:10]
 	doc_num_in_slot = value[-1]
 	return time, id, doc_num_in_slot
 
@@ -157,12 +157,15 @@ def get_all_dept():
 def get_all_doc(by_parse = False):
 	#Department cache not available, capture it again
 	global all_dept, all_doc
-	if all_dept is None:
-		all_dept = get_all_dept()
+	try:
+		if all_dept is None:
+			all_dept = get_all_dept()
+	except:
+		raise
 	#Check for cache
 	by_id_file_name = 'doc_by_id.pickle'
 	by_dept_file_name = 'doc_by_dept.pickle'
-	
+
 	#if forced by parse a page
 	if by_parse:
 		print >> sys.stderr, "Forced to fetch a new page."
@@ -191,7 +194,7 @@ def get_all_doc(by_parse = False):
 	doc_by_dept = pickle.load(by_dept_file)
 	by_id_file.close()
 	by_id_file.close()
-	
+
 	#Test if cache content is useful
 	if doc_by_id is None or doc_by_dept is None:
 		return get_all_doc_by_parsing(by_id_file_name, by_dept_file_name)
@@ -204,7 +207,7 @@ def get_all_doc_by_parsing(by_id_file_name='doc_by_id.pickle', by_dept_file_name
 	print >> sys.stderr, 'Parsing doctor data from each department'
 	for dept_id , dept_name in all_dept.iteritems():
 		print >> sys.stderr, ('Parsing ' + dept_id + ':\t' + dept_name + '...').encode('utf8')
-		
+
 		#In case some department got no doctor to be reserved, do it here
 		doc_by_dept[dept_id] = {}
 
@@ -225,8 +228,11 @@ def get_all_doc_by_parsing(by_id_file_name='doc_by_id.pickle', by_dept_file_name
 
 def dept_handler(dept_id=None):
 	global all_dept, all_doc
-	if all_doc is None:
-		all_doc = get_all_doc()
+	try:
+		if all_doc is None:
+			all_doc = get_all_doc()
+	except:
+		raise
 	dept_arr = None
 	if dept_id is None:
 		dept_arr = []
@@ -247,14 +253,17 @@ def doc_handler(doc_id=None, dept_id=None):
 	if (dept_id is None) != (doc_id is None):
 		raise NameError('Bad dept_id or doc_id!')
 	global all_dept, all_doc
-	if all_doc is None:
-		all_doc = get_all_doc()
+	try:
+		if all_doc is None:
+			all_doc = get_all_doc()
+	except:
+		raise
 	departments = set()
 	doc_arr = None
 	if doc_id is not None:
 		if all_doc[0][doc_id][1] != dept_id:
 			raise NameError('No such doctor in this department')
-		
+
 		doc_name, dept_id, input_tag_set = all_doc[0][doc_id]
 		doc_arr = [{'id': doc_id}, {'name': doc_name},{}, {'time': []}]
 		for input_tag in input_tag_set:
@@ -274,43 +283,95 @@ def doc_handler(doc_id=None, dept_id=None):
 	return json.dumps(doc_arr, ensure_ascii=False)
 
 ####Register Part####
-def get_rand_num_from_doc_page(doc_page):
-	doc_soup = BeautifulSoup(unicode(doc_page, 'big5', 'ignore'))
-	target_tag = doc_soup.find('input', attrs={'type':'hidden', 'name': re.compile(r'RandNumb(\s+?)')})
-	if target_tag is None:
-		raise NameError('''Can't find RandNumb''')
-	return str(target.name), str(target.value)
-def reg_handler(id=None, birthday=None, name=None, gender=None, native=None, code=None):
+def need_check_code():
+	return False
+
+def register(iden=None, birthday=None, name=None,
+		gender=None, native=None, code=None,
+		time=None, doc_id=None, dept_id=None):
+
+	if (dept_id is None) != (doc_id is None):
+		raise NameError('Bad dept_id or doc_id!')
+	global all_dept, all_doc
+	try:
+		if all_doc is None:
+			all_doc = get_all_doc()
+	except:
+		raise
+
 	missing_arg = false
 	missing_arr = []
-	if id is None:
+	if iden is None:
 		missing_arg = True
 		missing_arr.add({'id':u'身分證字號'})
 	if birthday is None:
 		missing_arg = True
 		missing_arr.add({'birthday':u'生日'})
+	if time is None:
+		missing_arg = True
+		missing_arr.add({'time':u'看診時段'})
+
 	if name is None:
 		missing_arg = True
 		missing_arr.add({'name':u'姓名'})
 	if gender is None:
 		missing_arg = True
-		missing_arr.add({'gender':u'性別'})
+		missing_arr.add({'gender':u'性別，男性填1女性填2'})
 	if nation is None:
 		missing_arg = True
 		missing_arr.add({'native':u'本國外國，本國請填1外國請填2'})
 	if need_check_code() and code is None:
 		missing_arg = True
 		missing_arr.add({'code':'code:http://ooxxx.ooxx'})
-	
+
 	if missing_arg:
 		return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
+	try:
+		do_registration(iden, birthday, name, gender, native, code, time, doc_id, dept_id)
+	except:
+		return json.dumps({'status':'1', 'message':'Unknown Error'}, ensure_ascii=False)
+
+def do_registration(iden, birthday, name, gender, native, code, time, doc_id, dept_id):
+	#After getting all needed info
+
+	#There are some hidden input form needed to be done
+	doc_page_soup = BeautifulSoup(get_doc_page(dept_id))
+	hidden_input_form = doc_page_soup.find('form', attrs={'method':'POST', 'name':'RegFrm'}).findAll('input', type='hidden')
+	hidden_dataset={}
+	for input_tag in hidden_input_form:
+		hidden_dataset[input_tag['name']] = input_tag['value']
+	'''
+	dataset={
+				#Required patient info
+				'id_no'		:iden
+				'BirthY'	:
+				'BirthM'	:
+				'BirthD'	:
+				'PatName'	:name
+				'sex'		:gender		
+			}
+	'''
+	print hidden_dataset
+
 
 def main():
+	#Preresquities
 	global all_dept, all_doc
 	all_dept = get_all_dept()
-	all_doc = get_all_doc() 
+	all_doc = get_all_doc()
+	#print dept_handler('02')
+	'''
+	Test case:
+	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/10/14早上
+	'''
+	'''
+	do_registration(iden='E123456789', birthday='1990-05-22', name=u'王小明', gender='1', native='1',
+					code=False, time='10010141', doc_id='9', dept_id='02')
+	'''
+	dept_handler()
 
 if __name__ == "__main__":
 	main()
 	conn.close()
 	print >> sys.stderr, ''
+
