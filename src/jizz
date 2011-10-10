@@ -1,0 +1,14 @@
+<NotepadPlus>
+    <Session activeView="1">
+        <mainView activeIndex="0">
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="1000" startPos="147" endPos="147" selMode="0" lang="Normal Text" encoding="-1" filename="D:\work\hospital\log\reg.post">
+                <Mark line="5" />
+                <Mark line="6" />
+                <Mark line="22" />
+            </File>
+        </mainView>
+        <subView activeIndex="0">
+            <File firstVisibleLine="332" xOffset="0" scrollWidth="1000" startPos="10430" endPos="10430" selMode="0" lang="Python" encoding="-1" filename="D:\work\hospital\src\query.py" />
+        </subView>
+    </Session>
+</NotepadPlus>
