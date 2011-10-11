@@ -47,13 +47,10 @@ def print_http_conn_status(conn):
 	print >> sys.stderr, headers
 	print >> sys.stderr, dataset
 	print >> sys.stderr, '------------'
-
 	print >> sys.stderr, 'RESPONSE INFO'
 	response = conn.getresponse()
 	print >> sys.stderr, response.status, response.reason
 	print >> sys.stderr, response.getheaders()
-
-
 	print >> sys.stderr, '------------'
 	print >> sys.stderr, 'RESPONSE'
 
@@ -350,7 +347,7 @@ def do_registration(iden, birthday, name, gender, native, code, time, doc_id, de
 				'BirthD'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(3))),
 				'PatName'	:name,
 				'sex'		:gender,
-				'origid'	:nation
+				'origid'	:native
 			}
 
 	#There are some hidden input form needed to be fetched
@@ -368,7 +365,8 @@ def do_registration(iden, birthday, name, gender, native, code, time, doc_id, de
 	button = doc_page_soup.find('input', attrs={'type':'submit','id':re.compile(r'''button(\w+)''')})	
 	dataset[button['id']]=button['value']
 	
-	print dataset
+	for key, value in dataset.iteritems():
+		print '&' + key + '=' + value
 
 
 def main():
@@ -384,7 +382,7 @@ def main():
 	
 	do_registration(iden='E123456789', birthday='1990-05-22', name=u'王小明', gender='1', native='1',
 					code=False, time='10010141', doc_id='9', dept_id='02')
-	dept_handler()
+	#dept_handler()
 
 if __name__ == "__main__":
 	main()
