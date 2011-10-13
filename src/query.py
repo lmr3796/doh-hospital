@@ -18,6 +18,7 @@ WWW_PATH = ''
 DEP_PATH = WWW_PATH + '/CHOOSEDEP1.ASP'
 DOC_PATH = WWW_PATH + '/FirstReg.asp'
 REG_PATH = WWW_PATH + '/PatReg.asp'
+NEED_CHECK_CODE = False
 #HTTP connection basics
 basic_headers = {
 		'Host': SERVER,
@@ -36,7 +37,7 @@ all_dept = None
 all_doc = None
 
 '''
-all_doc[0][doc_id] returns (name, dept_id)
+all_doc[0][doc_id] returns (name, dept_id, input_tag_set)
 all_doc[1][dept_id]['name'/'id']
 '''
 
@@ -140,7 +141,7 @@ def parse_doc_page(doc_page):
 	return slots_by_doctor
 
 def parse_doc_input_tag(input_tag):
-	#<INPUT TYPE="radio" NAME="opt" VALUE="1000928202  1  " onclick='KeypressRadio()' OnKeyPress='enterSend()'>
+	
 	value = re.search('value=\"\s*(.+?)\s*\"', input_tag)
 	if value is None:
 		raise NameError('Bad input_tag')
@@ -150,9 +151,9 @@ def parse_doc_input_tag(input_tag):
 	DD = value[5:7]
 	X = chr( int(value[7]) + (ord('A') - 1) )
 	time = YYYY, MM, DD, X
-	dep_id = value[8:10]
+	dept_id = value[8:10]
 	doc_num_in_slot = value[-1]
-	return time, id, doc_num_in_slot
+	return time, dept_id, doc_num_in_slot
 
 def get_all_dept():
 	try:
@@ -289,11 +290,9 @@ def doc_handler(doc_id=None, dept_id=None):
 	return json.dumps(doc_arr, ensure_ascii=False)
 
 ####Register Part####
-def need_check_code():
-	return False
 
 def register(iden=None, birthday=None, name=None,
-		gender=None, native=None, code=None,
+		gender=None, nation=None, code=None,
 		time=None, doc_id=None, dept_id=None):
 
 	if (dept_id is None) != (doc_id is None):
@@ -325,19 +324,19 @@ def register(iden=None, birthday=None, name=None,
 		missing_arr.add({'gender':u'性別，男性填1女性填2'})
 	if nation is None:
 		missing_arg = True
-		missing_arr.add({'native':u'本國外國，本國請填1外國請填2'})
-	if need_check_code() and code is None:
+		missing_arr.add({'nation':u'本國外國，本國請填1外國請填2'})
+	if NEED_CHECK_CODE and code is None:
 		missing_arg = True
 		missing_arr.add({'code':'code:http://ooxxx.ooxx'})
 
 	if missing_arg:
 		return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
 	try:
-		do_registration(iden, birthday, name, gender, native, code, time, doc_id, dept_id)
+		return do_registration(iden, birthday, name, gender, nation, code, time, doc_id, dept_id)
 	except:
 		return json.dumps({'status':'1', 'message':'Unknown Error'}, ensure_ascii=False)
 
-def do_registration(iden, birthday, name, gender, native, code, time, doc_id, dept_id):
+def do_registration(iden, birthday, name, gender, nation, code, time, doc_id, dept_id):
 	#After getting all needed info
 	dataset={
 				#Required patient info
@@ -347,7 +346,7 @@ def do_registration(iden, birthday, name, gender, native, code, time, doc_id, de
 				'BirthD'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(3))),
 				'PatName'	:name,
 				'sex'		:gender,
-				'origid'	:native
+				'origid'	:nation
 			}
 
 	#There are some hidden input form needed to be fetched
@@ -357,17 +356,45 @@ def do_registration(iden, birthday, name, gender, native, code, time, doc_id, de
 		dataset[input_tag['name']] = input_tag['value']
 	
 	#Simulate the javascript and fill in the missing hidden value
+	'''
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!!!!Most important part on registration!!!!
+	!!!!optTemp = id + ValueOfSlot + nation!!!!
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	'''
+	slot_value = None
+	for tag in all_doc[0][doc_id][2]:
+		time_match = re.match(r'''(\w+)-(\w+)-(\w+)-(\w+)''', time)
+		if time_match is None:
+			return json.dumps({'status':'1', 'message':'Wrong time format given by API'}, ensure_ascii=False)
+		YYYY = time_match.group(1)
+		MM	 = time_match.group(2)
+		DD	 = time_match.group(3)
+		X	 = time_match.group(4)
+		#slot_pattern = re.compile("radio")
+		#Matching slot of the doctor
+		#print parse_doc_input_tag(tag)[0],
+		#print (YYYY,MM,DD,X)
+		if parse_doc_input_tag(tag)[0] == (YYYY,MM,DD,X):
+			slot_value = re.search(r'''value\s*=\s*"(.+?)"''', tag).group(1)
+			break;
+			
+	if slot_value is None:		#No matching slot for the doctor
+		print 'jizz'
+		return json.dumps({'status':'1', 'message':'此醫生無此看診時段'}, ensure_ascii=False)
+		
+	dataset['optTemp'] = iden + slot_value + nation
+	dataset['opt'] = slot_value
 	dataset['opt_keycheck'] = 'Y'
-	dataset['optTemp'] = '' 
-	dataset['opt'] = ''
 	
 	#Finish the POST FORM
 	button = doc_page_soup.find('input', attrs={'type':'submit','id':re.compile(r'''button(\w+)''')})	
 	dataset[button['id']]=button['value']
 	
+	ans = ''
 	for key, value in dataset.iteritems():
-		print '&' + key + '=' + value
-
+		ans += '&' + key + '=' + value
+	return ans
 
 def main():
 	#Preresquities
@@ -380,8 +407,8 @@ def main():
 	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/10/14早上
 	'''
 	
-	do_registration(iden='E123456789', birthday='1990-05-22', name=u'王小明', gender='1', native='1',
-					code=False, time='10010141', doc_id='9', dept_id='02')
+	print do_registration(iden='E123456789', birthday='1990-05-22', name=u'王小明', gender='1', nation='1',
+					code=False, time='2011-10-14-A', doc_id='8', dept_id='02')
 	#dept_handler()
 
 if __name__ == "__main__":
