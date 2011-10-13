@@ -5,3 +5,5 @@ src/*.py are prototypes, but usually it works on most hospitals.
 
 To deploying it, just make a directory for each hospital, and put src/*.py under it.
 It works after configuring Apache
+
+HAHAHA
