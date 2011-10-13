@@ -55,7 +55,7 @@ def print_http_conn_status(conn):
 	print >> sys.stderr, '------------'
 	print >> sys.stderr, 'RESPONSE'
 
-def get_page( hostname, pathname='/', method='GET', headers=basic_headers, dataset=basic_dataset ):
+def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers, dataset=basic_dataset ):
 	global cookieValue, conn
 	params = urlencode(dataset)
 	if method == 'GET' and params != '':
@@ -394,7 +394,7 @@ def do_registration(iden, birthday, name, gender, nation, code, time, doc_id, de
 	ans = ''
 	for key, value in dataset.iteritems():
 		ans += '&' + key + '=' + value
-	return ans
+	return  get_page( pathname=REG_PATH, method='POST', headers=basic_headers, dataset=dataset )
 
 def main():
 	#Preresquities
