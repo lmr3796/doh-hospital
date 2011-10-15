@@ -29,12 +29,7 @@ prev_page = None
 basic_headers = {
 		'Host': SERVER,
 		'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.92 Sarari/535.2',
-		'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-		'Accept-Encoding': 'gzip,deflate,sdch',
-		'Accept-Language': 'zh-TW,zh;q=0.8,en-US;q=0.6,en;q=0.4',
-		'Accept-Charset': 'Big5;q=0.7,*;q=0.3',
 		'Connection': 'keep-alive',
-		'Origin': 'http://' + SERVER
 		}
 basic_dataset = {}
 conn = None		#A HTTPConnection
@@ -69,11 +64,8 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 		pathname += '?'+params
 	elif method == 'POST':
 		headers['Content-Type'] = 'application/x-www-form-urlencoded'
-		headers['Cache-Control'] = 'max-age=0'
 		print len(headers)
-		print ''
 		print headers
-		print ''
 		print len(dataset)
 		print params
 		print ''
@@ -111,7 +103,6 @@ def get_doc_page(dept_id, method='GET'):
 	dept_page = get_page( SERVER, DEP_PATH, 'GET', headers, dataset )
 
 	headers.update({
-		'Content-Type': 'application/x-www-form-urlencoded',
 		'Origin': 'http://chyiwww01.chyi.doh.gov.tw',
 		'Referer': 'http://chyiwww01.chyi.doh.gov.tw/CHOOSEDEP1.ASP'
 		})
