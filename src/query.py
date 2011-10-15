@@ -68,7 +68,15 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 	if method == 'GET' and params != '':
 		pathname += '?'+params
 	elif method == 'POST':
+		headers['Content-Type'] = 'application/x-www-form-urlencoded'
+		headers['Cache-Control'] = 'max-age=0'
+		print len(headers)
+		print ''
+		print headers
+		print ''
+		print len(dataset)
 		print params
+		print ''
 		
 	try:
 		if conn is None: 
@@ -389,7 +397,7 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 	dataset={}
 	#There are some hidden input form needed to be fetched
 	doc_page_soup = BeautifulSoup(get_doc_page(dept_id))
-	all_input_tags = doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input')
+	all_input_tags = doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input',attrs={'type':'hidden'})
 	for input_tag in all_input_tags:
 		dataset[input_tag['name']] = input_tag['value']
 	dataset.update({
