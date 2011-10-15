@@ -19,18 +19,25 @@ DEP_PATH = WWW_PATH + '/CHOOSEDEP1.ASP'
 DOC_PATH = WWW_PATH + '/FirstReg.asp'
 REG_PATH = WWW_PATH + '/PatReg.asp'
 NEED_CHECK_CODE = False
+#Cache Constants
+ALL_DEPT_FILE = 'all_dept.pickle'
+ALL_DOC_BY_ID_FILE = 'all_doc_by_id.pickle'
+ALL_DOC_BY_DEPT_FILE = 'all_doc_by_dept.pickle'
+
+prev_page = None
 #HTTP connection basics
 basic_headers = {
 		'Host': SERVER,
-		'User-Agent': 'Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.1 (KHTML, like Gecko) Chrome/13.0.782.220 Safari/535.1',
+		'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.92 Sarari/535.2',
 		'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 		'Accept-Encoding': 'gzip,deflate,sdch',
 		'Accept-Language': 'zh-TW,zh;q=0.8,en-US;q=0.6,en;q=0.4',
-		'Accept-Charset': 'utf-8;q=0.7,*;q=0.3'
+		'Accept-Charset': 'Big5;q=0.7,*;q=0.3',
+		'Connection': 'keep-alive',
+		'Origin': 'http://' + SERVER
 		}
 basic_dataset = {}
-
-conn = HTTPConnection(SERVER)
+conn = None		#A HTTPConnection
 cookieValue = None
 
 all_dept = None
@@ -56,46 +63,56 @@ def print_http_conn_status(conn):
 	print >> sys.stderr, 'RESPONSE'
 
 def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers, dataset=basic_dataset ):
-	global cookieValue, conn
+	global cookieValue, conn, prev_page
+	print >> sys.stderr, '\nGetting Page: '+ method +' http://'+hostname + pathname
 	params = urlencode(dataset)
-	if method == 'GET' and params != '':
-		pathname += '?'+params
+
 	if cookieValue is not None:
 		headers['Cookies'] = cookieValue
+		print 'Cookies: ' + cookieValue
+	else:
+		print 'cookieValue is None.'
+	if prev_page is not None:
+		headers['Referer'] = prev_page
+		print 'Referer: ' + prev_page
 
+	prev_page = 'http://' + hostname + pathname
+	if method == 'GET' and params != '':
+		pathname += '?'+params
+	elif method == 'POST':
+		print params
+		
 	try:
+		if conn is None: 
+			conn = HTTPConnection(SERVER)
 		conn.request(method, pathname, params, headers)
 	except httplib.CannotSendRequest:
-		conn = HTTPConnection(SERVER)
-	except:
-		raise
-	else:
-		pass
-
+		conn.connect()
+		conn.request(method, pathname, params, headers)
+		print >> sys.stderr, 'Connection reset.'
+	
 	response = conn.getresponse()
+
+	print response.getheaders()
 	for header in response.getheaders():
 		if header[0]=='set-cookie':
+			print 'set-cookie: ' + header[1]
 			cookieValue = header[1]
-
+	'''
 	if response.status != 200:
 		raise NameError( 'HTTP error code:' + str( response.status ) )
-
+	'''
 	return response.read()
 
 def get_dept_page():
-	try:
-		return get_page( SERVER, DEP_PATH )
-	except:
-		raise
+	return get_page( SERVER, DEP_PATH )
 
 def get_doc_page(dept_id, method='GET'):
 	headers = basic_headers.copy()
 	dataset = basic_dataset.copy()
-
-	try:
-		dept_page = get_page( SERVER, DEP_PATH, 'GET', headers, dataset )
-	except:
-		raise
+	
+	#Request it in order to get cookies
+	dept_page = get_page( SERVER, DEP_PATH, 'GET', headers, dataset )
 
 	headers.update({
 		'Content-Type': 'application/x-www-form-urlencoded',
@@ -107,10 +124,7 @@ def get_doc_page(dept_id, method='GET'):
 		'hfNetregStr': ''
 		})
 
-	try:
-		doc_page = get_page( SERVER, DOC_PATH, method, headers, dataset )
-	except:
-		raise
+	doc_page = get_page( SERVER, DOC_PATH, method, headers, dataset )
 	return doc_page
 
 def parse_dept_page(dept_page):
@@ -155,60 +169,70 @@ def parse_doc_input_tag(input_tag):
 	doc_num_in_slot = value[-1]
 	return time, dept_id, doc_num_in_slot
 
-def get_all_dept():
+def get_all_dept(by_parse=False):
+	#if forced by parse a page
+	if by_parse:
+		return get_all_dept_by_parsing()
+	else:
+		#Check if cache file available
+		if cache_file_avail(ALL_DEPT_FILE):
+			all_dept_file = open(ALL_DEPT_FILE, 'rb')
+			departments = pickle.load(all_dept_file)
+			all_dept_file.close()
+			#Test if cache content is useful
+			if departments is None:
+				by_parse = True
+		else:
+			by_parse = True
+
+	if by_parse:
+		return get_all_dept_by_parsing()
+	else:
+		return departments 
+
+	
+def get_all_dept_by_parsing(all_dept_file_name = ALL_DEPT_FILE, write_cache=True):
+	dept_page = get_page( SERVER, DEP_PATH )
+	result = parse_dept_page(dept_page)
 	try:
-		dept_page = get_page( SERVER, DEP_PATH )
-		return parse_dept_page(dept_page)
-	except:
-		raise
+		all_dept_file = open(all_dept_file_name,'wb')
+		pickle.dump(result,all_dept_file)
+	except IOError:
+		print >> sys.stderr, "Can't write cache file"
+	return result
 
 def get_all_doc(by_parse = False):
 	#Department cache not available, capture it again
 	global all_dept, all_doc
-	try:
-		if all_dept is None:
-			all_dept = get_all_dept()
-	except:
-		raise
-	#Check for cache
-	by_id_file_name = 'doc_by_id.pickle'
-	by_dept_file_name = 'doc_by_dept.pickle'
+	if all_dept is None:
+		print >>sys.stderr, 'all_dept is None'
+		all_dept = get_all_dept()
 
 	#if forced by parse a page
 	if by_parse:
 		print >> sys.stderr, "Forced to fetch a new page."
-		return get_all_doc_by_parsing(by_id_file_name, by_dept_file_name)
+	else:
+		#Check if cache file available
+		if cache_file_avail(ALL_DOC_BY_ID_FILE) and cache_file_avail(ALL_DOC_BY_DEPT_FILE):
+			by_id_file = open(ALL_DOC_BY_ID_FILE, 'rb')
+			by_dept_file = open(ALL_DOC_BY_DEPT_FILE, 'rb')
+			doc_by_id = pickle.load(by_id_file)
+			doc_by_dept = pickle.load(by_dept_file)
+			by_id_file.close()
+			by_dept_file.close()
+			#Test if cache content is useful
+			if doc_by_id is None or doc_by_dept is None:
+				by_parse = True
+		else:
+			print 'jizz2'
+			by_parse = True
 
-	#Try if cache file exist/expired or not
-	try:
-		id_day = datetime.datetime.fromtimestamp(os.stat(by_id_file_name).st_mtime).day
-		dept_day = datetime.datetime.fromtimestamp(os.stat(by_id_file_name).st_mtime).day
-		today = datetime.datetime.now().day
-		if today != id_day or today != dept_day:
-			return get_all_doc_by_parsing(by_id_file_name, by_dept_file_name)
-	except:
-		print >> sys.stderr, "Cache file expired or not found."
-		return get_all_doc_by_parsing(by_id_file_name, by_dept_file_name)
+	if by_parse:
+		return get_all_doc_by_parsing()
+	else:
+		return doc_by_id, doc_by_dept
 
-	#Try if a cache file can be opened good
-	try:
-		by_id_file = open(by_id_file_name, 'rb')
-		by_dept_file = open(by_dept_file_name, 'rb')
-	except:
-		print >> sys.stderr, '''Can't open cache file.'''
-		return get_all_doc_by_parsing(by_id_file_name, by_dept_file_name)
-
-	doc_by_id = pickle.load(by_id_file)
-	doc_by_dept = pickle.load(by_dept_file)
-	by_id_file.close()
-	by_id_file.close()
-
-	#Test if cache content is useful
-	if doc_by_id is None or doc_by_dept is None:
-		return get_all_doc_by_parsing(by_id_file_name, by_dept_file_name)
-	return doc_by_id, doc_by_dept
-
-def get_all_doc_by_parsing(by_id_file_name='doc_by_id.pickle', by_dept_file_name='doc_by_dept.pickle'):
+def get_all_doc_by_parsing(by_id_file_name = ALL_DOC_BY_ID_FILE, by_dept_file_name = ALL_DOC_BY_DEPT_FILE, write_cache=True):
 	global all_dept, all_doc
 	doc_by_id = {}
 	doc_by_dept = {}
@@ -225,13 +249,43 @@ def get_all_doc_by_parsing(by_id_file_name='doc_by_id.pickle', by_dept_file_name
 			doc_by_dept[dept_id][doc_id] = doc_name
 
 	print >> sys.stderr, 'All departments parsed!'
-	by_id_file = open(by_id_file_name, 'wb')
-	by_dept_file = open(by_dept_file_name, 'wb')
-	pickle.dump(doc_by_id, by_id_file)
-	pickle.dump(doc_by_dept, by_dept_file)
-	by_id_file.close()
-	by_id_file.close()
+	if write_cache:
+		by_id_file = open(by_id_file_name, 'wb')
+		by_dept_file = open(by_dept_file_name, 'wb')
+		pickle.dump(doc_by_id, by_id_file)
+		pickle.dump(doc_by_dept, by_dept_file)
+		by_id_file.close()
+		by_id_file.close()
 	return doc_by_id, doc_by_dept
+
+def cache_file_avail(file_name):
+	#Check if cache exists
+	try:
+		cache_stat = os.stat(file_name)
+	except OSError:
+		print >> sys.stderr, 'Cache file not found.'
+		return False
+	except:
+		print >> sys.stderr, 'Unknown error stating cache file.'
+		return False
+
+	#Check if cache expired
+	id_day = datetime.datetime.fromtimestamp(cache_stat.st_mtime).day
+	dept_day = datetime.datetime.fromtimestamp(cache_stat.st_mtime).day
+	today = datetime.datetime.now().day
+	if today != id_day or today != dept_day:
+		print >> sys.stderr, 'Cache expired.'
+		return False
+	
+	#Try if a cache file can be opened good
+	try:
+		cache_file = open(ALL_DOC_BY_ID_FILE, 'rb')
+		cache_file.close()
+	except:
+		print >> sys.stderr, '''Can't open cache file.'''
+		return False
+
+	return True
 
 def dept_handler(dept_id=None):
 	global all_dept, all_doc
@@ -240,6 +294,7 @@ def dept_handler(dept_id=None):
 			all_doc = get_all_doc()
 	except:
 		raise
+
 	dept_arr = None
 	if dept_id is None:
 		dept_arr = []
@@ -265,6 +320,7 @@ def doc_handler(doc_id=None, dept_id=None):
 			all_doc = get_all_doc()
 	except:
 		raise
+
 	departments = set()
 	doc_arr = None
 	if doc_id is not None:
@@ -294,15 +350,15 @@ def doc_handler(doc_id=None, dept_id=None):
 def register(iden=None, birthday=None, name=None,
 		gender=None, nation=None, code=None,
 		time=None, doc_id=None, dept_id=None):
-
 	if (dept_id is None) != (doc_id is None):
 		raise NameError('Bad dept_id or doc_id!')
+
 	global all_dept, all_doc
 	try:
 		if all_doc is None:
 			all_doc = get_all_doc()
 	except:
-		raise
+		raise NameError('Error connecting to server.')
 
 	missing_arg = false
 	missing_arr = []
@@ -328,6 +384,9 @@ def register(iden=None, birthday=None, name=None,
 	if NEED_CHECK_CODE and code is None:
 		missing_arg = True
 		missing_arr.add({'code':'code:http://ooxxx.ooxx'})
+	if marriage is None:
+		missing_arg = True
+		missing_arr.add({'marriage':u'婚姻狀況，未婚請填1，已婚請填2，離婚請填3，喪偶請填4'})
 
 	if missing_arg:
 		return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
@@ -336,17 +395,21 @@ def register(iden=None, birthday=None, name=None,
 	except:
 		return json.dumps({'status':'1', 'message':'Unknown Error'}, ensure_ascii=False)
 
-def do_registration(iden, birthday, name, gender, nation, code, time, doc_id, dept_id):
+def do_registration(iden, birthday, name, gender, nation, marriage, code, time, doc_id, dept_id):
+	get_page(pathname='/ChooseDep.asp')
+	get_doc_page(dept_id)
+	headers = basic_headers.copy()
 	#After getting all needed info
 	dataset={
 				#Required patient info
-				'id_no'		:iden,
+				'idno'		:iden,
 				'BirthY'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(1)) - 1911),
 				'BirthM'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(2))),
 				'BirthD'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(3))),
 				'PatName'	:name,
 				'sex'		:gender,
-				'origid'	:nation
+				'origid'	:nation,
+				'marriage'	:marriage
 			}
 
 	#There are some hidden input form needed to be fetched
@@ -390,29 +453,27 @@ def do_registration(iden, birthday, name, gender, nation, code, time, doc_id, de
 	#Finish the POST FORM
 	button = doc_page_soup.find('input', attrs={'type':'submit','id':re.compile(r'''button(\w+)''')})	
 	dataset[button['id']]=button['value']
-	
 	ans = ''
 	for key, value in dataset.iteritems():
-		ans += '&' + key + '=' + value
-	return  get_page( pathname=REG_PATH, method='POST', headers=basic_headers, dataset=dataset )
+		dataset[key] = value.encode('big5')
+		#ans += '&' + key + '=' + dataset[key] 
+	print ans
+	return get_page( pathname=REG_PATH, method='POST', headers=headers, dataset=dataset )
 
 def main():
 	#Preresquities
 	global all_dept, all_doc
 	all_dept = get_all_dept()
 	all_doc = get_all_doc()
-	#print dept_handler('02')
 	'''
 	Test case:
-	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/10/14早上
+	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/10/17777777早上
 	'''
-	
-	print do_registration(iden='E123456789', birthday='1990-05-22', name=u'王小明', gender='1', nation='1',
-					code=False, time='2011-10-14-A', doc_id='8', dept_id='02')
-	#dept_handler()
+	print do_registration(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
+					gender='1', nation='1', marriage='1',
+					code=False, time='2011-10-17-A', doc_id='9', dept_id='02')
 
 if __name__ == "__main__":
 	main()
-	conn.close()
 	print >> sys.stderr, ''
 
