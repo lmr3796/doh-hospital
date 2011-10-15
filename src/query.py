@@ -68,8 +68,8 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 	params = urlencode(dataset)
 
 	if cookieValue is not None:
-		headers['Cookies'] = cookieValue
-		print 'Cookies: ' + cookieValue
+		headers['Cookie'] = cookieValue
+		#print 'Cookie: ' + cookieValue
 	else:
 		print 'cookieValue is None.'
 	if prev_page is not None:
@@ -396,6 +396,7 @@ def register(iden=None, birthday=None, name=None,
 		return json.dumps({'status':'1', 'message':'Unknown Error'}, ensure_ascii=False)
 
 def do_registration(iden, birthday, name, gender, nation, marriage, code, time, doc_id, dept_id):
+	get_page(pathname='/netreg.asp')
 	get_page(pathname='/ChooseDep.asp')
 	get_doc_page(dept_id)
 	headers = basic_headers.copy()
