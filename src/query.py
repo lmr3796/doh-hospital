@@ -97,7 +97,8 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 	for header in response.getheaders():
 		if header[0]=='set-cookie':
 			print 'set-cookie: ' + header[1]
-			cookieValue = header[1]
+			cookieValue = re.match(r'''(.*);(.*)''', header[1]).group(1)
+			print 'cookieValue = ' + cookieValue
 	'''
 	if response.status != 200:
 		raise NameError( 'HTTP error code:' + str( response.status ) )
@@ -155,7 +156,6 @@ def parse_doc_page(doc_page):
 	return slots_by_doctor
 
 def parse_doc_input_tag(input_tag):
-	
 	value = re.search('value=\"\s*(.+?)\s*\"', input_tag)
 	if value is None:
 		raise NameError('Bad input_tag')
