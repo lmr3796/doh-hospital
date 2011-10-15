@@ -76,7 +76,7 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 		print >> sys.stderr, 'Connection reset.'
 	
 	response = conn.getresponse()
-	print 'HTTP/', (lambda ver: ver == 11 and '1.1' or '1.0')(response.version), response.status, response.reason
+	print >> sys.stderr, 'HTTP/', (lambda ver: ver == 11 and '1.1' or '1.0')(response.version), response.status, response.reason
 	#print response.getheaders()
 	for header in response.getheaders():
 		if header[0]=='set-cookie':
@@ -451,7 +451,7 @@ def main():
 	Test case:
 	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/10/17777777早上
 	'''
-	print do_registration(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
+	do_registration(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
 					gender='1', nation='1', marriage='1',
 					code=False, time='2011-10-17-A', doc_id='8', dept_id='02')
 
