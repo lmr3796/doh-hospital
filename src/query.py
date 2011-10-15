@@ -48,7 +48,7 @@ all_doc[0][doc_id] returns (name, dept_id, input_tag_set)
 all_doc[1][dept_id]['name'/'id']
 '''
 
-def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers, dataset=basic_dataset ):
+def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers, dataset=basic_dataset, reset_referer=False ):
 	global cookieValue, conn, prev_page
 	print >> sys.stderr, '\nGetting Page: '+ method +' http://'+hostname + pathname
 	params = urlencode(dataset)
@@ -58,9 +58,13 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 
 	if prev_page is not None:
 		headers['Referer'] = prev_page
-		print 'Referer: ' + prev_page
+		print >>sys.stderr,'Referer: ' + prev_page
 
-	prev_page = 'http://' + hostname + pathname
+	if reset_referer:
+		prev_page=None
+	else:
+		prev_page = 'http://' + hostname + pathname
+		
 	if method == 'GET' and params != '':
 		pathname += '?'+params
 	elif method == 'POST':
@@ -331,7 +335,7 @@ def doc_handler(doc_id=None, dept_id=None):
 ####Register Part####
 
 def register(iden=None, birthday=None, name=None,
-		gender=None, nation=None, code=None,
+		gender=None, nation=None, marriage=None, code=None,
 		time=None, doc_id=None, dept_id=None):
 	if (dept_id is None) != (doc_id is None):
 		raise NameError('Bad dept_id or doc_id!')
@@ -381,7 +385,14 @@ def register(iden=None, birthday=None, name=None,
 def do_registration(iden, birthday, name, gender, nation, marriage, code, time, doc_id, dept_id):
 	headers = basic_headers.copy()
 	#After getting all needed info
-	dataset={
+	
+	dataset={}
+	#There are some hidden input form needed to be fetched
+	doc_page_soup = BeautifulSoup(get_doc_page(dept_id))
+	all_input_tags = doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input')
+	for input_tag in all_input_tags:
+		dataset[input_tag['name']] = input_tag['value']
+	dataset.update({
 				#Required patient info
 				'idno'		:iden,
 				'BirthY'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(1)) - 1911),
@@ -391,13 +402,7 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 				'sex'		:gender,
 				'origid'	:nation,
 				'marriage'	:marriage
-			}
-
-	#There are some hidden input form needed to be fetched
-	doc_page_soup = BeautifulSoup(get_doc_page(dept_id))
-	hidden_input_tags = doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input', type='hidden')
-	for input_tag in hidden_input_tags:
-		dataset[input_tag['name']] = input_tag['value']
+			})
 	
 	#Simulate the javascript and fill in the missing hidden value
 	'''
@@ -444,6 +449,7 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 def main():
 	#Preresquities
 	get_page(pathname='/netreg.asp')
+	get_page(pathname='/ChooseDep.asp')
 	global all_dept, all_doc
 	all_dept = get_all_dept()
 	all_doc = get_all_doc()
