@@ -28,8 +28,7 @@ prev_page = None
 #HTTP connection basics
 basic_headers = {
 		'Host': SERVER,
-		'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.92 Sarari/535.2',
-		'Connection': 'keep-alive',
+		#'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.92 Sarari/535.2',
 		}
 basic_dataset = {}
 conn = None		#A HTTPConnection
@@ -64,10 +63,11 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 		pathname += '?'+params
 	elif method == 'POST':
 		headers['Content-Type'] = 'application/x-www-form-urlencoded'
-		print len(headers)
-		print headers
-		print len(dataset)
-		print params
+		print 'Header: ', len(headers), 'items:\n'
+		for k,v in headers.iteritems():
+			print k + ': ' + v
+		#print len(dataset)
+		#print params
 		print ''
 		
 	try:
@@ -96,22 +96,10 @@ def get_dept_page():
 	return get_page( SERVER, DEP_PATH )
 
 def get_doc_page(dept_id, method='GET'):
-	headers = basic_headers.copy()
-	dataset = basic_dataset.copy()
 	
-	#Request it in order to get cookies
-	dept_page = get_page( SERVER, DEP_PATH, 'GET', headers, dataset )
+	dataset={'Department': dept_id,	'hfNetregStr': ''}
 
-	headers.update({
-		'Origin': 'http://chyiwww01.chyi.doh.gov.tw',
-		'Referer': 'http://chyiwww01.chyi.doh.gov.tw/CHOOSEDEP1.ASP'
-		})
-	dataset.update({
-		'Department': dept_id,
-		'hfNetregStr': ''
-		})
-
-	doc_page = get_page( SERVER, DOC_PATH, method, headers, dataset )
+	doc_page = get_page( hostname=SERVER, pathname=DOC_PATH, method=method, dataset=dataset )
 	return doc_page
 
 def parse_dept_page(dept_page):
@@ -210,7 +198,6 @@ def get_all_doc(by_parse = False):
 			if doc_by_id is None or doc_by_dept is None:
 				by_parse = True
 		else:
-			print 'jizz2'
 			by_parse = True
 
 	if by_parse:
