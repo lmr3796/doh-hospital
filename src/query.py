@@ -28,7 +28,11 @@ prev_page = None
 #HTTP connection basics
 basic_headers = {
 		'Host': SERVER,
-		#'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.92 Sarari/535.2',
+		'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.92 Sarari/535.2',
+		'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+		'Accept-Encoding': 'gzip,deflate',
+		'Accept-Language': 'zh-TW,en-us;q=0.7,en;q=0.3',
+		'Accept-Charset': 'UTF-8,*'
 		}
 basic_dataset = {}
 conn = None		#A HTTPConnection
@@ -81,7 +85,8 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 	
 	response = conn.getresponse()
 	print >> sys.stderr, 'HTTP/', (lambda ver: ver == 11 and '1.1' or '1.0')(response.version), response.status, response.reason
-	#print response.getheaders()
+	
+	#Check if required to set cookies
 	for header in response.getheaders():
 		if header[0]=='set-cookie':
 			cookieValue = re.match(r'''(.*);(.*)''', header[1]).group(1)
@@ -446,6 +451,7 @@ def main():
 	do_registration(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
 					gender='1', nation='1', marriage='1',
 					code=False, time='2011-10-17-A', doc_id='8', dept_id='02')
+	
 
 if __name__ == "__main__":
 	main()
