@@ -48,20 +48,6 @@ all_doc[0][doc_id] returns (name, dept_id, input_tag_set)
 all_doc[1][dept_id]['name'/'id']
 '''
 
-def print_http_conn_status(conn):
-	print >> sys.stderr, ''
-	print >> sys.stderr, 'REQUEST INFO'
-	print >> sys.stderr, method+' http://'+hostname+pathname
-	print >> sys.stderr, headers
-	print >> sys.stderr, dataset
-	print >> sys.stderr, '------------'
-	print >> sys.stderr, 'RESPONSE INFO'
-	response = conn.getresponse()
-	print >> sys.stderr, response.status, response.reason
-	print >> sys.stderr, response.getheaders()
-	print >> sys.stderr, '------------'
-	print >> sys.stderr, 'RESPONSE'
-
 def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers, dataset=basic_dataset ):
 	global cookieValue, conn, prev_page
 	print >> sys.stderr, '\nGetting Page: '+ method +' http://'+hostname + pathname
@@ -69,9 +55,7 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 
 	if cookieValue is not None:
 		headers['Cookie'] = cookieValue
-		#print 'Cookie: ' + cookieValue
-	else:
-		print 'cookieValue is None.'
+
 	if prev_page is not None:
 		headers['Referer'] = prev_page
 		print 'Referer: ' + prev_page
@@ -92,13 +76,12 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 		print >> sys.stderr, 'Connection reset.'
 	
 	response = conn.getresponse()
-
-	print response.getheaders()
+	print 'HTTP/', (lambda ver: ver == 11 and '1.1' or '1.0')(response.version), response.status, response.reason
+	#print response.getheaders()
 	for header in response.getheaders():
 		if header[0]=='set-cookie':
-			print 'set-cookie: ' + header[1]
 			cookieValue = re.match(r'''(.*);(.*)''', header[1]).group(1)
-			print 'cookieValue = ' + cookieValue
+			print >>sys.stderr, 'set-cookie: ' + header[1] + ', Cookie: ' + cookieValue
 	'''
 	if response.status != 200:
 		raise NameError( 'HTTP error code:' + str( response.status ) )
@@ -396,9 +379,6 @@ def register(iden=None, birthday=None, name=None,
 		return json.dumps({'status':'1', 'message':'Unknown Error'}, ensure_ascii=False)
 
 def do_registration(iden, birthday, name, gender, nation, marriage, code, time, doc_id, dept_id):
-	get_page(pathname='/netreg.asp')
-	get_page(pathname='/ChooseDep.asp')
-	get_doc_page(dept_id)
 	headers = basic_headers.copy()
 	#After getting all needed info
 	dataset={
@@ -463,6 +443,7 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 
 def main():
 	#Preresquities
+	get_page(pathname='/netreg.asp')
 	global all_dept, all_doc
 	all_dept = get_all_dept()
 	all_doc = get_all_doc()
@@ -472,7 +453,7 @@ def main():
 	'''
 	print do_registration(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
 					gender='1', nation='1', marriage='1',
-					code=False, time='2011-10-17-A', doc_id='9', dept_id='02')
+					code=False, time='2011-10-17-A', doc_id='8', dept_id='02')
 
 if __name__ == "__main__":
 	main()
