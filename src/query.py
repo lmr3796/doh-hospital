@@ -48,12 +48,18 @@ all_doc[1][dept_id]['name'/'id']
 
 def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers, dataset=basic_dataset, reset_referer=False ):
 	global cookieValue, conn, prev_page
-	print >> sys.stderr, '\nGetting Page: '+ method +' http://'+hostname + pathname
 	params = urlencode(dataset)
+
+	if method == 'GET' and params != '':
+		pathname += '?'+params
+	elif method == 'POST':
+		headers['Content-Type'] = 'application/x-www-form-urlencoded'
 
 	if cookieValue is not None:
 		headers['Cookie'] = cookieValue
 
+	print >> sys.stderr, '\nGetting Page: '+ method +' http://'+hostname + pathname
+	
 	if prev_page is not None:
 		headers['Referer'] = prev_page
 		print >>sys.stderr,'Referer: ' + prev_page
@@ -63,17 +69,12 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 	else:
 		prev_page = 'http://' + hostname + pathname
 		
-	if method == 'GET' and params != '':
-		pathname += '?'+params
-	elif method == 'POST':
-		headers['Content-Type'] = 'application/x-www-form-urlencoded'
-		print 'Header: ', len(headers), 'items:\n'
-		for k,v in headers.iteritems():
-			print k + ': ' + v
+		#print 'Header: ', len(headers), 'items:\n'
+		#for k,v in headers.iteritems():
+		# 	print k + ': ' + v
 		#print len(dataset)
 		#print params
-		print ''
-		
+		#print ''
 	try:
 		if conn is None: 
 			conn = HTTPConnection(SERVER)
@@ -98,10 +99,10 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 	return response.read()
 
 def get_dept_page():
+	get_page(pathname='/ChooseDep.asp')
 	return get_page( SERVER, DEP_PATH )
 
 def get_doc_page(dept_id, method='GET'):
-	
 	dataset={'Department': dept_id,	'hfNetregStr': ''}
 
 	doc_page = get_page( hostname=SERVER, pathname=DOC_PATH, method=method, dataset=dataset )
@@ -376,11 +377,21 @@ def register(iden=None, birthday=None, name=None,
 def do_registration(iden, birthday, name, gender, nation, marriage, code, time, doc_id, dept_id):
 	headers = basic_headers.copy()
 	#After getting all needed info
-	
 	dataset={}
 	#There are some hidden input form needed to be fetched
-	doc_page_soup = BeautifulSoup(get_doc_page(dept_id))
-	all_input_tags = doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input',attrs={'type':'hidden'})
+	u'''
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!!!!!!這步很重要,沒做這步就射了   !!!!!!
+	!!!!!!一定要先用POST戳這個網頁一次!!!!!!
+	!!!!!!後面才能POST那個PatReg.asp  !!!!!!
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	'''
+	get_page(pathname='/NETREG1.asp',dataset={'mode':''})
+	doc_page = get_doc_page(dept_id, 'POST')
+	doc_page_soup = BeautifulSoup(doc_page)		#Use POST, the server seems to POST first to reg.
+	all_input_tags = doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input')
 	for input_tag in all_input_tags:
 		dataset[input_tag['name']] = input_tag['value']
 	dataset.update({
@@ -411,16 +422,11 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 		MM	 = time_match.group(2)
 		DD	 = time_match.group(3)
 		X	 = time_match.group(4)
-		#slot_pattern = re.compile("radio")
-		#Matching slot of the doctor
-		#print parse_doc_input_tag(tag)[0],
-		#print (YYYY,MM,DD,X)
 		if parse_doc_input_tag(tag)[0] == (YYYY,MM,DD,X):
 			slot_value = re.search(r'''value\s*=\s*"(.+?)"''', tag).group(1)
 			break;
 			
 	if slot_value is None:		#No matching slot for the doctor
-		print 'jizz'
 		return json.dumps({'status':'1', 'message':'此醫生無此看診時段'}, ensure_ascii=False)
 		
 	dataset['optTemp'] = iden + slot_value + nation
@@ -430,27 +436,34 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 	#Finish the POST FORM
 	button = doc_page_soup.find('input', attrs={'type':'submit','id':re.compile(r'''button(\w+)''')})	
 	dataset[button['id']]=button['value']
-	ans = ''
+	#ans = ''
 	for key, value in dataset.iteritems():
 		dataset[key] = value.encode('big5')
 		#ans += '&' + key + '=' + dataset[key] 
-	print ans
+	#print ans
+	'''print ''
+	print doc_page_soup
+	print ''
+	for k,v in dataset.iteritems():
+		if re.match('RandNumb_',k) is not None:
+			print k + ' = ' + v
+			print ''
+			break'''
 	return get_page( pathname=REG_PATH, method='POST', headers=headers, dataset=dataset )
 
 def main():
 	#Preresquities
 	get_page(pathname='/netreg.asp')
-	get_page(pathname='/ChooseDep.asp')
 	global all_dept, all_doc
 	all_dept = get_all_dept()
 	all_doc = get_all_doc()
 	'''
 	Test case:
-	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/10/17777777早上
+	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/11/22早上
 	'''
 	do_registration(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
 					gender='1', nation='1', marriage='1',
-					code=False, time='2011-10-17-A', doc_id='8', dept_id='02')
+					code=False, time='2011-11-22-A', doc_id='8', dept_id='02')
 	
 
 if __name__ == "__main__":
