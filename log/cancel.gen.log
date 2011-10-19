@@ -1,0 +1,7 @@
+GET /regcan.asp
+POST /PatReg.asp RandNumb_D=JOGRFOJRIRNMORG4&mode=&area=1&areaid=&opcode=DQ&idno=E123456789&Patid=&origid=1&BirthY=80&BirthM=1&BirthD=1&NeedBirth=Y&button1=%A7%B9%A6%A8%2C%B0e%A5X
+POST /PatReg.asp button1=%A8%FA%AE%F8&mode=&area=&areaid=&opcode=DC&origid=1&idno=E123456789&patid=00000000&PatName=%A4%FD%BE%E5%A9%FA++++++&opt=1001122102++1++&docName=%BEG%B3%7B%B0%AE++++++++++++++&birthday=0800101&regNo=026
+POST /safebrowsing/downloads?client=navclient-auto-ffox&appver=3.6.23&pver=2.2&wrkey=AKEgNiv-UdhhJpz1g5vEwEV_fo2AS_-Yo3u7mnGkSCnipLfZeyV1r132SKQJd1QND32lsb51uQTmhoYUF70TKZv5dzuw-oTcXQ== goog-malware-shavar;a:39681-52884:s:52401-63584:mac
+ goog-phish-shavar;a:158043-169608:s:78289-82573:mac
+ 
+GET /safebrowsing/rd/ChNnb29nLW1hbHdhcmUtc2hhdmFyEAEY4Y4DIICQAzIZYccAAP__________v_______________AA

@@ -1,0 +1,72 @@
+http://chyiwww01.chyi.doh.gov.tw/regcan.asp
+
+GET /regcan.asp HTTP/1.1
+Host: chyiwww01.chyi.doh.gov.tw
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; zh-TW; rv:1.9.2.23) Gecko/20110921 Ubuntu/10.10 (maverick) Firefox/3.6.23 GTB7.1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: zh-tw,en-us;q=0.7,en;q=0.3
+Accept-Encoding: gzip,deflate
+Accept-Charset: UTF-8,*
+Keep-Alive: 115
+Connection: keep-alive
+Referer: http://chyiwww01.chyi.doh.gov.tw/NETREG1.asp?mode=
+Cookie: ASPSESSIONIDQATACCST=FHEPCNEDHDPPPAAEPNMBAGBA
+
+HTTP/1.1 200 OK
+Date: Wed, 19 Oct 2011 10:16:19 GMT
+Server: Microsoft-IIS/6.0
+X-Powered-By: ASP.NET
+Content-Length: 12027
+Content-Type: text/html
+Cache-Control: private
+----------------------------------------------------------
+http://chyiwww01.chyi.doh.gov.tw/PatReg.asp
+
+POST /PatReg.asp HTTP/1.1
+Host: chyiwww01.chyi.doh.gov.tw
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; zh-TW; rv:1.9.2.23) Gecko/20110921 Ubuntu/10.10 (maverick) Firefox/3.6.23 GTB7.1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: zh-tw,en-us;q=0.7,en;q=0.3
+Accept-Encoding: gzip,deflate
+Accept-Charset: UTF-8,*
+Keep-Alive: 115
+Connection: keep-alive
+Referer: http://chyiwww01.chyi.doh.gov.tw/regcan.asp
+Cookie: ASPSESSIONIDQATACCST=FHEPCNEDHDPPPAAEPNMBAGBA
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 162
+RandNumb_D=JOGRFOJRIRNMORG4&mode=&area=1&areaid=&opcode=DQ&idno=E123456789&Patid=&origid=1&BirthY=80&BirthM=1&BirthD=1&NeedBirth=Y&button1=%A7%B9%A6%A8%2C%B0e%A5X
+HTTP/1.1 200 OK
+Date: Wed, 19 Oct 2011 10:16:40 GMT
+Server: Microsoft-IIS/6.0
+X-Powered-By: ASP.NET
+Content-Length: 6610
+Content-Type: text/html; Charset=BIG5
+Expires: Wed, 19 Oct 2011 10:16:38 GMT
+Cache-Control: private
+----------------------------------------------------------
+http://chyiwww01.chyi.doh.gov.tw/PatReg.asp
+
+POST /PatReg.asp HTTP/1.1
+Host: chyiwww01.chyi.doh.gov.tw
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; zh-TW; rv:1.9.2.23) Gecko/20110921 Ubuntu/10.10 (maverick) Firefox/3.6.23 GTB7.1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: zh-tw,en-us;q=0.7,en;q=0.3
+Accept-Encoding: gzip,deflate
+Accept-Charset: UTF-8,*
+Keep-Alive: 115
+Connection: keep-alive
+Referer: http://chyiwww01.chyi.doh.gov.tw/PatReg.asp
+Cookie: ASPSESSIONIDQATACCST=FHEPCNEDHDPPPAAEPNMBAGBA
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 209
+button1=%A8%FA%AE%F8&mode=&area=&areaid=&opcode=DC&origid=1&idno=E123456789&patid=00000000&PatName=%A4%FD%BE%E5%A9%FA++++++&opt=1001122102++1++&docName=%BEG%B3%7B%B0%AE++++++++++++++&birthday=0800101&regNo=026
+HTTP/1.1 200 OK
+Date: Wed, 19 Oct 2011 10:16:47 GMT
+Server: Microsoft-IIS/6.0
+X-Powered-By: ASP.NET
+Content-Length: 5907
+Content-Type: text/html; Charset=BIG5
+Expires: Wed, 19 Oct 2011 10:16:45 GMT
+Cache-Control: private
+----------------------------------------------------------
