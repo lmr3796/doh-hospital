@@ -54,16 +54,13 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 		pathname += '?'+params
 	elif method == 'POST':
 		headers['Content-Type'] = 'application/x-www-form-urlencoded'
-
+	
 	if cookieValue is not None:
 		headers['Cookie'] = cookieValue
-
-	print >> sys.stderr, '\nGetting Page: '+ method +' http://'+hostname + pathname
 	
 	if prev_page is not None:
 		headers['Referer'] = prev_page
-		print >>sys.stderr,'Referer: ' + prev_page
-
+	
 	if reset_referer:
 		prev_page=None
 	else:
@@ -85,17 +82,16 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 		print >> sys.stderr, 'Connection reset.'
 	
 	response = conn.getresponse()
-	print >> sys.stderr, 'HTTP/', (lambda ver: ver == 11 and '1.1' or '1.0')(response.version), response.status, response.reason
+	#print >> sys.stderr, 'HTTP/', (lambda ver: ver == 11 and '1.1' or '1.0')(response.version), response.status, response.reason
 	
 	#Check if required to set cookies
 	for header in response.getheaders():
 		if header[0]=='set-cookie':
 			cookieValue = re.match(r'''(.*);(.*)''', header[1]).group(1)
-			print >>sys.stderr, 'set-cookie: ' + header[1] + ', Cookie: ' + cookieValue
-	'''
+	
 	if response.status != 200:
 		raise NameError( 'HTTP error code:' + str( response.status ) )
-	'''
+
 	return response.read()
 
 def get_dept_page():
@@ -218,11 +214,16 @@ def get_all_doc_by_parsing(by_id_file_name = ALL_DOC_BY_ID_FILE, by_dept_file_na
 	print >> sys.stderr, 'Parsing doctor data from each department'
 	for dept_id , dept_name in all_dept.iteritems():
 		print >> sys.stderr, ('Parsing ' + dept_id + ':\t' + dept_name + '...').encode('utf8')
-
-		#In case some department got no doctor to be reserved, do it here
+		
+		#Try to make doctor id stable rather than decided by parsing order
+		doc_list = parse_doc_page(get_doc_page(dept_id)).items()
+		
+		#In case some department got no doctor to be reserved
+		if len(doc_list) == 0:
+			continue
+		doc_list = sorted(doc_list, key=lambda tup: tup[1])
 		doc_by_dept[dept_id] = {}
-
-		for doc_name, input_tag_set in parse_doc_page(get_doc_page(dept_id)).iteritems():
+		for doc_name, input_tag_set in doc_list:
 			doc_id = str(len(doc_by_id))
 			doc_by_id[doc_id] = doc_name, dept_id, input_tag_set
 			doc_by_dept[dept_id][doc_id] = doc_name
@@ -324,8 +325,6 @@ def doc_handler(doc_id=None, dept_id=None):
 		doc_arr = sorted(doc_arr, key=lambda doc: int(doc.keys()[0]))
 	return json.dumps(doc_arr, ensure_ascii=False)
 
-####Register Part####
-
 def register(iden=None, birthday=None, name=None,
 		gender=None, nation=None, marriage=None, code=None,
 		time=None, doc_id=None, dept_id=None):
@@ -339,7 +338,7 @@ def register(iden=None, birthday=None, name=None,
 	except:
 		raise NameError('Error connecting to server.')
 
-	missing_arg = false
+	missing_arg = False
 	missing_arr = []
 	if iden is None:
 		missing_arg = True
@@ -370,7 +369,7 @@ def register(iden=None, birthday=None, name=None,
 	if missing_arg:
 		return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
 	try:
-		return do_registration(iden, birthday, name, gender, nation, code, time, doc_id, dept_id)
+		return do_registration(iden, birthday, name, gender, nation, marriage, code, time, doc_id, dept_id)
 	except:
 		return json.dumps({'status':'1', 'message':'Unknown Error'}, ensure_ascii=False)
 
@@ -436,20 +435,15 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 	#Finish the POST FORM
 	button = doc_page_soup.find('input', attrs={'type':'submit','id':re.compile(r'''button(\w+)''')})	
 	dataset[button['id']]=button['value']
-	#ans = ''
 	for key, value in dataset.iteritems():
 		dataset[key] = value.encode('big5')
-		#ans += '&' + key + '=' + dataset[key] 
-	#print ans
-	'''print ''
-	print doc_page_soup
-	print ''
-	for k,v in dataset.iteritems():
-		if re.match('RandNumb_',k) is not None:
-			print k + ' = ' + v
-			print ''
-			break'''
-	return get_page( pathname=REG_PATH, method='POST', headers=headers, dataset=dataset )
+
+	succ_page_soup = BeautifulSoup(get_page( pathname=REG_PATH, method='POST', headers=headers, dataset=dataset ))
+	number = succ_page_soup.find(text=re.compile(u'''就診序號''')).nextSibling.string.strip()
+	if number is not None:
+		return json.dumps({'status':'0', 'message':number})
+	else:
+		return 'jizz'
 
 def main():
 	#Preresquities
@@ -461,10 +455,9 @@ def main():
 	Test case:
 	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/11/22早上
 	'''
-	do_registration(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
+	print BeautifulSoup(register(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
 					gender='1', nation='1', marriage='1',
-					code=False, time='2011-11-22-A', doc_id='8', dept_id='02')
-	
+					code=False, time='2011-11-22-A', doc_id='9', dept_id='02')).prettify()
 
 if __name__ == "__main__":
 	main()
