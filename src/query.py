@@ -446,7 +446,7 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 	else:
 		return json.dumps({'status':'1', 'message':'Unknown error.'})
 
-def cancel_register():
+def cancel(iden=None, nation=None, birthday=None, time=None, doc_id=None, dept_id=None, code=None):
 	if (dept_id is None) != (doc_id is None):
 		raise NameError('Bad dept_id or doc_id!')
 
@@ -477,10 +477,8 @@ def cancel_register():
 
 	if missing_arg:
 		return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
-	try:
-		return do_cancel_registration(iden, birthday, name, code, time, doc_id, dept_id)
-	except:
-		return json.dumps({'status':'1', 'message':'Unknown Error'}, ensure_ascii=False)
+
+	return do_cancel_registration(iden, nation, birthday, time, dept_id)
 
 def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
 	#try:
@@ -556,7 +554,7 @@ def main():
 	all_dept = get_all_dept()
 	all_doc = get_all_doc()
 	reg = True 
-	cancel = True
+	can = True
 	'''
 	Test case:
 	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/11/22早上
@@ -565,8 +563,8 @@ def main():
 		print register(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
 				gender='1', nation='1', marriage='1',
 				code=False, time='2011-11-22-A', doc_id='9', dept_id='02')
-	if cancel:
-		print do_cancel_registration(iden='E123456789', birthday='1991-01-01', nation='1', dept_id='02', time='2011-11-22-A')
+	if can:
+		print cancel(iden='E123456789', birthday='1991-01-01', nation='1', doc_id='9', dept_id='02', time='2011-11-22-A')
 
 if __name__ == "__main__":
 	main()
