@@ -444,6 +444,7 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 		return json.dumps({'status':'1', 'message':'Unknown error.'})
 
 def cancel(iden=None, nation=None, birthday=None, time=None, doc_id=None, dept_id=None, code=None):
+	print >>sys.stderr, 'Jizz'
 	if (dept_id is None) != (doc_id is None):
 		raise NameError('Bad dept_id or doc_id!')
 
@@ -478,6 +479,7 @@ def cancel(iden=None, nation=None, birthday=None, time=None, doc_id=None, dept_i
 	return do_cancel_registration(iden, nation, birthday, time, dept_id)
 
 def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
+	print >>sys.stderr, 'Jizz2'
 	get_page(pathname='/NETREG1.asp',dataset={'mode':''})
 	can_page_soup = BeautifulSoup(get_page(pathname=CAN_PATH))
 	
@@ -568,7 +570,7 @@ urls = (
     '/(\w+)/dept', 'Dept',
     '/(\w+)/doctor', 'Doctor',
     '/(\w+)/register','Register',
-    '/(\w+)/cancelregister','Cancel',
+    '/(\w+)/cancel_register','Cancel',
 )
 
 app = web.application(urls, globals(), autoreload=False)
@@ -619,11 +621,13 @@ class Register(Base_handler):
 								gender=None, nation=None, marriage=None )
 		return register(iden=input_data.id, birthday=input_data.birthday, name=input_data.name,
 				gender=input_data.gender, nation=input_data.nation, marriage=input_data.marriage,
-				code=NEED_CHECK_CODE, time=input_data.time, doc_id=input_data.doctor, dept_id=input_data.dept)
+				time=input_data.time, doc_id=input_data.doctor, dept_id=input_data.dept)
 
 class Cancel(Base_handler):
 	def GET(self, name):
-		cancel(iden='E123456789', birthday='1991-01-01', nation='1', doc_id='9', dept_id='02', time='2011-11-22-A')
+		input_data = web.input(doctor=None, dept=None, time=None, id=None, birthday=None, nation=None)
+		return cancel(iden=input_data.id, birthday=input_data.birthday, nation=input_data.nation, 
+						doc_id=input_data.doctor, dept_id=input_data.dept, time=input_data.time)
 
 if __name__ == "__main__":
 	app.run()
