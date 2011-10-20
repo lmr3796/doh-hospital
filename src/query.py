@@ -444,20 +444,58 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 	if number is not None:
 		return json.dumps({'status':'0', 'message':number})
 	else:
-		return 'jizz'
+		return json.dumps({'status':'1', 'message':'Unknown error.'})
 
 def cancel_register():
-	return 'jizz'
-def do_cancel_registration(iden, nation, birthday):
+	if (dept_id is None) != (doc_id is None):
+		raise NameError('Bad dept_id or doc_id!')
+
+	global all_dept, all_doc
+	try:
+		if all_doc is None:
+			all_doc = get_all_doc()
+	except:
+		raise NameError('Error connecting to server.')
+
+	missing_arg = False
+	missing_arr = []
+	if iden is None:
+		missing_arg = True
+		missing_arr.add({'id':u'身分證字號'})
+	if birthday is None:
+		missing_arg = True
+		missing_arr.add({'birthday':u'生日'})
+	if time is None:
+		missing_arg = True
+		missing_arr.add({'time':u'看診時段'})
+	if nation is None:
+		missing_arg = True
+		missing_arr.add({'nation':u'本國外國，本國請填1外國請填2'})
+	if NEED_CHECK_CODE and code is None:
+		missing_arg = True
+		missing_arr.add({'code':'code:http://ooxxx.ooxx'})
+
+	if missing_arg:
+		return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
+	try:
+		return do_cancel_registration(iden, birthday, name, code, time, doc_id, dept_id)
+	except:
+		return json.dumps({'status':'1', 'message':'Unknown Error'}, ensure_ascii=False)
+
+def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
 	#try:
+	get_page(pathname='/NETREG1.asp',dataset={'mode':''})
 	can_page_soup = BeautifulSoup(get_page(pathname=CAN_PATH))
 	#except:
 		#return json.dumps({'status':'1', 'message':'Error connecting to server.'}, ensure_ascii=False)
 	dataset={}
 	all_input_tags = can_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input')
 	for input_tag in all_input_tags:
-		if 'value' in input_tag:
-			dataset[input_tag['name']] = input_tag['value']
+		if input_tag.has_key('name'):
+			if input_tag.has_key('value'):
+				dataset[input_tag['name']] = input_tag['value']
+			else:
+				dataset[input_tag['name']] = ''
 
 	dataset.update({
 				#Required patient info
@@ -465,16 +503,51 @@ def do_cancel_registration(iden, nation, birthday):
 				'origid'	:nation,
 				'BirthY'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(1)) - 1911),
 				'BirthM'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(2))),
-				'BirthD'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(3)))
+				'BirthD'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(3))),
 				})
+	
 	#Finish the POST FORM
-	button = can_page_soup.find('input', attrs={'type':'submit','id':re.compile(r'''button(\w+)''')})	
-	print button
-	dataset[button['id']]=button['value']
 	for key, value in dataset.iteritems():
 		dataset[key] = value.encode('big5')
+	
+	can_page_soup = BeautifulSoup(get_page(method='POST', dataset=dataset, pathname=REG_PATH))
+	'''
+		Processing Second Page
+	'''
+	dataset = {}
+	#get_page(pathname='/NETREG1.asp',dataset={'mode':''})
+	time_match = re.match(r'(\w+)-(\w+)-(\w+)-(\w+)',time)
+	YYY = str(int(time_match.group(1)) - 1911)
+	MM = time_match.group(2)
+	DD = time_match.group(3)
+	X = str(ord(time_match.group(4)) - ord('A') + 1)
+	opt_value_pattern = YYY + MM + DD + X + dept_id + r'.*'
+	slot_found = False
+	for form in can_page_soup.findAll('form', attrs={'method':'POST', 'name':'RegFrm'}):
+		record = form.nextSibling
+		tag = record.find('input', attrs={'name':'opt', 'value':re.compile(opt_value_pattern)}) 
+		if tag is None:
+			continue
+		else:
+			slot_found = True
+			for input_tag in record.findAll('input'):
+				if input_tag.has_key('name'):
+					if input_tag.has_key('value'):
+						dataset[input_tag['name']] = input_tag['value']
+					else:
+						dataset[input_tag['name']] = '' 
+			break
+	if not slot_found:
+		return json.dumps({'status':'1', 'message':u'無此掛號資訊'}, ensure_ascii=False)
 
-	return get_page(method='POST', dataset=dataset, pathname=REG_PATH)
+	#Finish the POST FORM
+	for key, value in dataset.iteritems():
+		dataset[key] = value.encode('big5')
+	can_reg_soup = BeautifulSoup((get_page(pathname=REG_PATH, method='POST', dataset=dataset)))
+	if can_reg_soup.find(text=re.compile(u'取消掛號成功')) is not None:
+		return json.dumps({'status':'0'})
+	else:
+		return json.dumps({'status':'1', 'message':'Unknown error'})
 
 def main():
 	#Preresquities
@@ -482,16 +555,18 @@ def main():
 	global all_dept, all_doc
 	all_dept = get_all_dept()
 	all_doc = get_all_doc()
+	reg = True 
+	cancel = True
 	'''
 	Test case:
 	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/11/22早上
 	'''
-	'''
-	print register(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
-					gender='1', nation='1', marriage='1',
-					code=False, time='2011-11-22-A', doc_id='9', dept_id='02')
-	'''
-	print do_cancel_registration(iden='E123456789', birthday='1991-01-01', nation='1')
+	if reg:
+		print register(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
+				gender='1', nation='1', marriage='1',
+				code=False, time='2011-11-22-A', doc_id='9', dept_id='02')
+	if cancel:
+		print do_cancel_registration(iden='E123456789', birthday='1991-01-01', nation='1', dept_id='02', time='2011-11-22-A')
 
 if __name__ == "__main__":
 	main()
