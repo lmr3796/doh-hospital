@@ -18,6 +18,7 @@ WWW_PATH = ''
 DEP_PATH = WWW_PATH + '/CHOOSEDEP1.ASP'
 DOC_PATH = WWW_PATH + '/FirstReg.asp'
 REG_PATH = WWW_PATH + '/PatReg.asp'
+CAN_PATH = WWW_PATH + '/regcan.asp'
 NEED_CHECK_CODE = False
 #Cache Constants
 ALL_DEPT_FILE = 'all_dept.pickle'
@@ -445,6 +446,36 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 	else:
 		return 'jizz'
 
+def cancel_register():
+	return 'jizz'
+def do_cancel_registration(iden, nation, birthday):
+	#try:
+	can_page_soup = BeautifulSoup(get_page(pathname=CAN_PATH))
+	#except:
+		#return json.dumps({'status':'1', 'message':'Error connecting to server.'}, ensure_ascii=False)
+	dataset={}
+	all_input_tags = can_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input')
+	for input_tag in all_input_tags:
+		if 'value' in input_tag:
+			dataset[input_tag['name']] = input_tag['value']
+
+	dataset.update({
+				#Required patient info
+				'idno'		:iden,
+				'origid'	:nation,
+				'BirthY'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(1)) - 1911),
+				'BirthM'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(2))),
+				'BirthD'	:unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(3)))
+				})
+	#Finish the POST FORM
+	button = can_page_soup.find('input', attrs={'type':'submit','id':re.compile(r'''button(\w+)''')})	
+	print button
+	dataset[button['id']]=button['value']
+	for key, value in dataset.iteritems():
+		dataset[key] = value.encode('big5')
+
+	return get_page(method='POST', dataset=dataset, pathname=REG_PATH)
+
 def main():
 	#Preresquities
 	get_page(pathname='/netreg.asp')
@@ -455,9 +486,12 @@ def main():
 	Test case:
 	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/11/22早上
 	'''
-	print BeautifulSoup(register(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
+	'''
+	print register(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
 					gender='1', nation='1', marriage='1',
-					code=False, time='2011-11-22-A', doc_id='9', dept_id='02')).prettify()
+					code=False, time='2011-11-22-A', doc_id='9', dept_id='02')
+	'''
+	print do_cancel_registration(iden='E123456789', birthday='1991-01-01', nation='1')
 
 if __name__ == "__main__":
 	main()
