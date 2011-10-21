@@ -43,11 +43,25 @@ all_doc = None
 all_doc[0][doc_id] returns (name, dept_id, input_tag_set)
 all_doc[1][dept_id]['name'/'id']
 '''
+def set_path(path_file):
+	global SERVER, WWW_PATH, DEP_PATH, DOC_PATH, REG_PATH, CAN_PATH, NEED_CHECK_CODE
+	f = open(path_file, 'r')
+	path = json.loads(f.read())
+	need = True
+	if path['NEED_CHECK_CODE'] == 'False':
+		need = False
+	SERVER   = path['SERVER']
+	WWW_PATH = path['WWW_PATH']
+	DEP_PATH = WWW_PATH + path['DEP_PATH']
+	DOC_PATH = WWW_PATH + path['DOC_PATH']
+	REG_PATH = WWW_PATH + path['REG_PATH']
+	CAN_PATH = WWW_PATH + path['CAN_PATH']
+	NEED_CHECK_CODE = need
+	f.close()
 
 def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers, dataset=basic_dataset, reset_referer=False ):
 	global cookieValue, conn, prev_page
 	params = urlencode(dataset)
-
 	if method == 'GET' and params != '':
 		pathname += '?'+params
 	elif method == 'POST':
@@ -64,12 +78,6 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 	else:
 		prev_page = 'http://' + hostname + pathname
 		
-		#print 'Header: ', len(headers), 'items:\n'
-		#for k,v in headers.iteritems():
-		# 	print k + ': ' + v
-		#print len(dataset)
-		#print params
-		#print ''
 	try:
 		if conn is None: 
 			conn = HTTPConnection(SERVER)
@@ -80,7 +88,6 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 		print >> sys.stderr, 'Connection reset.'
 	
 	response = conn.getresponse()
-	#print >> sys.stderr, 'HTTP/', (lambda ver: ver == 11 and '1.1' or '1.0')(response.version), response.status, response.reason
 	
 	#Check if required to set cookies
 	for header in response.getheaders():
@@ -179,7 +186,6 @@ def get_all_doc(by_parse = False):
 	#Department cache not available, capture it again
 	global all_dept, all_doc
 	if all_dept is None:
-		print >>sys.stderr, 'all_dept is None'
 		all_dept = get_all_dept()
 
 	#if forced by parse a page
@@ -364,6 +370,7 @@ def register(iden=None, birthday=None, name=None,
 		missing_arg = True
 		missing_arr.append({'marriage':u'婚姻狀況，未婚請填1，已婚請填2，離婚請填3，喪偶請填4'})
 
+	web.header('Content-Type', 'text/html')
 	if missing_arg:
 		return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
 	try:
@@ -444,7 +451,6 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 		return json.dumps({'status':'1', 'message':'Unknown error.'})
 
 def cancel(iden=None, nation=None, birthday=None, time=None, doc_id=None, dept_id=None, code=None):
-	print >>sys.stderr, 'Jizz'
 	if (dept_id is None) != (doc_id is None):
 		raise NameError('Bad dept_id or doc_id!')
 
@@ -479,7 +485,6 @@ def cancel(iden=None, nation=None, birthday=None, time=None, doc_id=None, dept_i
 	return do_cancel_registration(iden, nation, birthday, time, dept_id)
 
 def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
-	print >>sys.stderr, 'Jizz2'
 	get_page(pathname='/NETREG1.asp',dataset={'mode':''})
 	can_page_soup = BeautifulSoup(get_page(pathname=CAN_PATH))
 	
@@ -578,27 +583,11 @@ application = app.wsgifunc()
 
 class Base_handler():
 	def __init__(self):
-		self.set_path()
-	def set_path(self):
-		global SERVER, WWW_PATH, DEP_PATH, DOC_PATH, REG_PATH, CAN_PATH, NEED_CHECK_CODE
-		REQUEST_PATH = re.search(r'(/\w+)/.*',web.ctx.path).group(1)
-		RUNNING = LOCAL_SERVER_PATH + REQUEST_PATH 
-		os.chdir(RUNNING)
-		f = open('doh.json', 'r')
-		path = json.loads(f.read())
-		need = True
-		if path['NEED_CHECK_CODE'] == 'False':
-			need = False
-		SERVER   = path['SERVER']
-		WWW_PATH = path['WWW_PATH']
-		DEP_PATH = WWW_PATH + path['DEP_PATH']
-		DOC_PATH = WWW_PATH + path['DOC_PATH']
-		REG_PATH = WWW_PATH + path['REG_PATH']
-		CAN_PATH = WWW_PATH + path['CAN_PATH']
-		NEED_CHECK_CODE = need
-		#print >>sys.stderr, 'Running at:', os.getcwd()
-		#print >>sys.stderr, 'Jizz:', DEP_PATH 
-		f.close()
+		request_path = re.search(r'(/\w+)/.*',web.ctx.path).group(1)
+		running = LOCAL_SERVER_PATH + request_path 
+		os.chdir(running)
+		set_path(running + '/doh.json')
+		web.header('Content-Type', 'text/html; charset=utf-8')
 
 
 class Mainpage(Base_handler):
@@ -608,26 +597,49 @@ class Mainpage(Base_handler):
 class Dept(Base_handler):
 	def GET(self, name):
 		input_data = web.input(id=None)
-		return dept_handler(input_data.id)
+		try:
+			return dept_handler(input_data.id)
+		except KeyError:
+			all_dept = get_all_dept(True)
+			all_doc = get_all_doc(True)
+			return dept_handler(input_data.id)
+			
 
 class Doctor(Base_handler):
 	def GET(self, name):
 		input_data = web.input(id=None, deptId=None)
-		return doc_handler(doc_id=input_data.id, dept_id=input_data.deptId)
+		try:
+			return doc_handler(doc_id=input_data.id, dept_id=input_data.deptId)
+		except KeyError:
+			all_dept = get_all_dept(True)
+			all_doc = get_all_doc(True)
+			return doc_handler(doc_id=input_data.id, dept_id=input_data.deptId)
 
 class Register(Base_handler):
 	def GET(self, name):
 		input_data = web.input(doctor=None, dept=None, time=None, id=None, birthday=None, first=None, name= None,
 								gender=None, nation=None, marriage=None )
-		return register(iden=input_data.id, birthday=input_data.birthday, name=input_data.name,
-				gender=input_data.gender, nation=input_data.nation, marriage=input_data.marriage,
-				time=input_data.time, doc_id=input_data.doctor, dept_id=input_data.dept)
-
+		try:
+			return register(iden=input_data.id, birthday=input_data.birthday, name=input_data.name,
+							gender=input_data.gender, nation=input_data.nation, marriage=input_data.marriage,
+							time=input_data.time, doc_id=input_data.doctor, dept_id=input_data.dept)
+		except KeyError:
+			all_dept = get_all_dept(True)
+			all_doc = get_all_doc(True)
+			return register(iden=input_data.id, birthday=input_data.birthday, name=input_data.name,
+							gender=input_data.gender, nation=input_data.nation, marriage=input_data.marriage,
+							time=input_data.time, doc_id=input_data.doctor, dept_id=input_data.dept)
 class Cancel(Base_handler):
 	def GET(self, name):
 		input_data = web.input(doctor=None, dept=None, time=None, id=None, birthday=None, nation=None)
-		return cancel(iden=input_data.id, birthday=input_data.birthday, nation=input_data.nation, 
-						doc_id=input_data.doctor, dept_id=input_data.dept, time=input_data.time)
+		try:
+			return cancel(iden=input_data.id, birthday=input_data.birthday, nation=input_data.nation, 
+							doc_id=input_data.doctor, dept_id=input_data.dept, time=input_data.time)
+		except KeyError:
+			all_dept = get_all_dept(True)
+			all_doc = get_all_doc(True)
+			return cancel(iden=input_data.id, birthday=input_data.birthday, nation=input_data.nation, 
+							doc_id=input_data.doctor, dept_id=input_data.dept, time=input_data.time)
 
 if __name__ == "__main__":
 	app.run()
