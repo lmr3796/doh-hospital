@@ -1,0 +1,9 @@
+{
+"SERVER": "chyiwww01.chyi.doh.gov.tw",
+"WWW_PATH": "",
+"DEP_PATH": "/CHOOSEDEP1.ASP",
+"DOC_PATH": "/FirstReg.asp",
+"REG_PATH": "/PatReg.asp",
+"CAN_PATH": "/regcan.asp",
+"NEED_CHECK_CODE": "False"
+}
