@@ -611,9 +611,8 @@ class Base_handler():
 		request_path = re.search(r'(/\w+)/.*',web.ctx.path).group(1)
 		running = LOCAL_SERVER_PATH + request_path 
 		os.chdir(running)
-		set_path(running + '/doh.json')
+		set_env(running + '/doh.json')
 		web.header('Content-Type', 'text/html; charset=utf-8')
-
 
 class Mainpage(Base_handler):
 	def GET(self, name):
