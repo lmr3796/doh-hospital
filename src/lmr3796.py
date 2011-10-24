@@ -88,7 +88,7 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=copy.deepcopy
 	global cookieValue, conn, prev_page
 	if hostname is None:
 		raise NameError('SERVER not defined')
-
+	print >> sys.stderr, method, hostname+pathname
 	params = urlencode(dataset)
 	if method == 'GET' and params != '':
 		pathname += '?'+params
@@ -127,11 +127,10 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=copy.deepcopy
 
 def get_dept_page():
 	get_page(pathname=WWW_PATH+'/ChooseDep.asp', reset_referer=True)
-	return get_page( SERVER, DEP_PATH, reset_referer=True )
+	return get_page(SERVER, DEP_PATH)
 
 def get_doc_page(dept_id, method='GET'):
 	dataset={'Department': dept_id,	'hfNetregStr': ''}
-
 	doc_page = get_page( hostname=SERVER, pathname=DOC_PATH, method=method, dataset=dataset)
 	return doc_page
 
@@ -418,7 +417,7 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	'''
-	get_page(SERVER,pathname='/NETREG1.asp',dataset={'mode':''})
+	get_page(SERVER,pathname=WWW_PATH + '/NETREG1.asp',dataset={'mode':''})
 	doc_page = get_doc_page(dept_id, 'POST')
 	doc_page_soup = BeautifulSoup(doc_page)		#Use POST, the server seems to POST first to reg.
 	all_input_tags = doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input')
@@ -510,7 +509,13 @@ def cancel(iden=None, nation=None, birthday=None, time=None, doc_id=None, dept_i
 	return do_cancel_registration(iden, nation, birthday, time, dept_id)
 
 def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
-	get_page(SERVER,pathname='/NETREG1.asp',dataset={'mode':''})
+	u'''
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!!!!!!!!跟Register一樣!!!!!!!!!!
+	!!!!!!!!要先戳NETREG1.asp!!!!!!!
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	'''
+	get_page(SERVER,pathname=WWW_PATH + '/NETREG1.asp',dataset={'mode':''})
 	can_page_soup = BeautifulSoup(get_page(SERVER,pathname=CAN_PATH))
 	
 	dataset={}
@@ -574,27 +579,9 @@ def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
 	else:
 		return json.dumps({'status':'1', 'message':'Unknown error'})
 
-#def main():
-#	#Preresquities
-#	get_page(pathname='/netreg.asp')
-#	global all_dept, all_doc
-#	all_dept = get_all_dept()
-#	all_doc = get_all_doc()
-#	reg = True 
-#	can = True
-#	'''
-#	Test case:
-#	鄭逢乾, doc_id = 9, dept_id = '02'(內科), time = 100/11/22早上
-#	'''
-#	if reg:
-#		print register(iden='E123456789', birthday='1991-01-01', name=u'王曉明',
-#				gender='1', nation='1', marriage='1',
-#				code=False, time='2011-11-22-A', doc_id='9', dept_id='02')
-#	if can:
-#		print cancel(iden='E123456789', birthday='1991-01-01', nation='1', doc_id='9', dept_id='02', time='2011-11-22-A')
-
-
-##############################WSGI!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#########################
+#############################################################################
+####################!!!!!!!!!!!!!!!!!#WSGI!!!!!!!!!!!!!!!!!!#################
+#############################################################################
 urls = (
     '/(\w+)/', 'Mainpage',
     '/(\w+)/dept', 'Dept',
@@ -611,6 +598,7 @@ class Base_handler():
 		request_path = re.search(r'(/\w+)/.*',web.ctx.path).group(1)
 		running = LOCAL_SERVER_PATH + request_path 
 		os.chdir(running)
+		print >> sys.stderr, 'Requesting:', request_path, 'and running at', os.getcwd()
 		set_env(running + '/doh.json')
 		web.header('Content-Type', 'text/html; charset=utf-8')
 
