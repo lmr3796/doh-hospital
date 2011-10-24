@@ -2,8 +2,8 @@
 
 # Automatically fetch info from hospitals everyday.
 
-#LOCAL_SERVER_ROOT = '/srv/www/doh'
-LOCAL_SERVER_ROOT = '/home/lmr3796/hospital/deploy'
+LOCAL_SERVER_ROOT = '/srv/www/doh'
+#LOCAL_SERVER_ROOT = '/home/lmr3796/hospital/deploy'
 import os, sys
 import lmr3796
 hos_list = [
@@ -31,8 +31,9 @@ def main():
 		make_cache(sys.argv[1])
 	else:
 		for hos in hos_list:
+			print >> sys.stderr, 'Caching', hos
 			make_cache(hos)
-	print >> sys.stderr, 'Caching all hospitals done!'
+	print >> sys.stderr, 'All hospitals done!'
 	return 0
 
 if __name__ == '__main__':
