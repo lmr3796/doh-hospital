@@ -21,8 +21,8 @@ def make_cache(hos):
 	running = LOCAL_SERVER_ROOT + hos
 	os.chdir(running)
 	lmr3796.set_env(running + '/doh.json')
-	lmr3796.get_all_dept('true')
-	lmr3796.get_all_doc('true')
+	lmr3796.get_all_dept(True)
+	lmr3796.get_all_doc(True)
 	os.system('chown www-data:www-data *.pickle')
 
 def main():

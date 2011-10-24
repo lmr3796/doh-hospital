@@ -212,7 +212,7 @@ def get_all_doc(by_parse = False):
 	#Department cache not available, capture it again
 	global all_dept, all_doc
 	if all_dept is None:
-		all_dept = get_all_dept()
+		all_dept = get_all_dept(True)
 
 	#if forced by parse a page
 	if by_parse:
