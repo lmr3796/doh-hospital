@@ -4,7 +4,7 @@ import httplib
 from httplib import HTTPConnection
 from urllib import urlencode
 from BeautifulSoup import BeautifulSoup
-import sys, os, re, web
+import sys, os, re, web, copy
 import json, time, datetime, pickle
 
 LOCAL_SERVER_PATH = '/srv/www/doh'
@@ -25,7 +25,6 @@ ALL_DOC_BY_DEPT_FILE = 'all_doc_by_dept.pickle'
 prev_page = None
 #HTTP connection basics
 basic_headers = {
-		'Host': SERVER,
 		'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.92 Sarari/535.2',
 		'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 		'Accept-Encoding': 'gzip,deflate',
@@ -43,13 +42,15 @@ all_doc = None
 all_doc[0][doc_id] returns (name, dept_id, input_tag_set)
 all_doc[1][dept_id]['name'/'id']
 '''
-def set_path(path_file):
+def set_env(path_file):
 	global SERVER, WWW_PATH, DEP_PATH, DOC_PATH, REG_PATH, CAN_PATH, NEED_CHECK_CODE
+	global conn, prev_page, cookieValue, all_dept, all_doc
 	f = open(path_file, 'r')
 	path = json.loads(f.read())
-	need = True
-	if path['NEED_CHECK_CODE'] == 'False':
-		need = False
+	if path['NEED_CHECK_CODE'] == 'True':
+		need = True
+	else:
+		need = False 
 	SERVER   = path['SERVER']
 	WWW_PATH = path['WWW_PATH']
 	DEP_PATH = WWW_PATH + path['DEP_PATH']
@@ -57,12 +58,38 @@ def set_path(path_file):
 	REG_PATH = WWW_PATH + path['REG_PATH']
 	CAN_PATH = WWW_PATH + path['CAN_PATH']
 	NEED_CHECK_CODE = need
+	cookieValue = None
+	prev_page = None
+	all_dept = None
+	all_doc = None
+	if conn is not None and isinstance(conn, HTTPConnection):
+		conn.close()
+	conn = HTTPConnection(SERVER)
 	f.close()
 
-def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers, dataset=basic_dataset, reset_referer=False ):
+def plot_http_response_info(response=None, sent_headers=None):
+	if response is None:
+		return
+	print >> sys.stderr, '======================REQUEST INFO======================'
+	print >> sys.stderr, 'HTTP/1.1' if response.version == 11 else 'HTTP/1.0', response.status, response.reason
+	if sent_headers is not None:
+		print >> sys.stderr, '                =====REQUEST HEADER=====                '
+	for k,v in sent_headers.iteritems():
+		print >> sys.stderr, k+':', v
+	print >> sys.stderr, ''
+	if response.getheaders() is not None:
+		print >> sys.stderr, '                =====RESPONSE HEADER====                '
+		for k,v in response.getheaders():
+			print >> sys.stderr, k+':', v
+		print >> sys.stderr, ''
+
+def get_page( hostname=SERVER, pathname='/', method='GET', headers=copy.deepcopy(basic_headers),
+				dataset=copy.deepcopy(basic_dataset), reset_referer=False ):
 	global cookieValue, conn, prev_page
+	if hostname is None:
+		raise NameError('SERVER not defined')
+
 	params = urlencode(dataset)
-	print >>sys.stderr , 'Path:', hostname + pathname
 	if method == 'GET' and params != '':
 		pathname += '?'+params
 	elif method == 'POST':
@@ -71,14 +98,11 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 	if cookieValue is not None:
 		headers['Cookie'] = cookieValue
 	
-	if prev_page is not None:
+	if prev_page is not None and not reset_referer:
 		headers['Referer'] = prev_page
 	
-	if reset_referer:
-		prev_page=None
-	else:
-		prev_page = 'http://' + hostname + pathname
-		
+	headers['Host'] = SERVER	
+	prev_page = 'http://' + hostname + pathname
 	try:
 		if conn is None: 
 			conn = HTTPConnection(SERVER)
@@ -96,18 +120,19 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=basic_headers
 			cookieValue = re.match(r'''(.*);(.*)''', header[1]).group(1)
 	
 	if response.status != 200:
+		plot_http_response_info(response, headers)
 		raise NameError( 'HTTP error code:' + str( response.status ) )
 
 	return response.read()
 
 def get_dept_page():
-	get_page(pathname='/ChooseDep.asp')
-	return get_page( SERVER, DEP_PATH )
+	get_page(pathname=WWW_PATH+'/ChooseDep.asp', reset_referer=True)
+	return get_page( SERVER, DEP_PATH, reset_referer=True )
 
 def get_doc_page(dept_id, method='GET'):
 	dataset={'Department': dept_id,	'hfNetregStr': ''}
 
-	doc_page = get_page( hostname=SERVER, pathname=DOC_PATH, method=method, dataset=dataset )
+	doc_page = get_page( hostname=SERVER, pathname=DOC_PATH, method=method, dataset=dataset)
 	return doc_page
 
 def parse_dept_page(dept_page):
@@ -174,7 +199,7 @@ def get_all_dept(by_parse=False):
 
 	
 def get_all_dept_by_parsing(all_dept_file_name = ALL_DEPT_FILE, write_cache=True):
-	dept_page = get_page( SERVER, DEP_PATH )
+	dept_page = get_dept_page()
 	result = parse_dept_page(dept_page)
 	try:
 		all_dept_file = open(all_dept_file_name,'wb')
