@@ -16,7 +16,6 @@ hos_list = [
 	'/tnh',
 	'/tygh',
 ]
-os.system("find . -name *.pickle|xargs /bin/rm -f")
 
 def make_cache(hos):
 	running = LOCAL_SERVER_ROOT + hos
@@ -27,12 +26,15 @@ def make_cache(hos):
 	os.system('chown www-data:www-data *.pickle')
 
 def main():
+	print >> sys.stderr, 'Clear all cache files.'
+	os.system("find . -name *.pickle|xargs /bin/rm -f")
 	if len(sys.argv) > 1:
 		make_cache(sys.argv[1])
 	else:
 		for hos in hos_list:
-			print >> sys.stderr, 'Caching', hos
+			print >> sys.stderr, r'[' + hos[1:] + r']'
 			make_cache(hos)
+			print >> sys.stderr, ''
 	print >> sys.stderr, 'All hospitals done!'
 	return 0
 
