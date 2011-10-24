@@ -9,7 +9,6 @@ import lmr3796
 hos_list = [
 	'/chcg',
 	'/chyi',
-	#'/hwln',
 	'/mil',
 	'/syh',
 	'/taic',
