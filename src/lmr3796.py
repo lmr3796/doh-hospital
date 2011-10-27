@@ -4,7 +4,7 @@ import httplib
 from httplib import HTTPConnection
 from urllib import urlencode
 from BeautifulSoup import BeautifulSoup
-import sys, os, re, web, copy
+import sys, os, re, web, copy, traceback
 import json, time, datetime, pickle
 
 LOCAL_SERVER_PATH = '/srv/www/doh'
@@ -88,12 +88,13 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=copy.deepcopy
 	global cookieValue, conn, prev_page
 	if hostname is None:
 		raise NameError('SERVER not defined')
-	print >> sys.stderr, method, hostname+pathname
 	params = urlencode(dataset)
+	print >> sys.stderr, method, hostname+pathname+(''if method == 'POST' else params)
 	if method == 'GET' and params != '':
 		pathname += '?'+params
 	elif method == 'POST':
 		headers['Content-Type'] = 'application/x-www-form-urlencoded'
+		print >> sys.stderr, params
 	
 	if cookieValue is not None:
 		headers['Cookie'] = cookieValue
@@ -107,6 +108,7 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=copy.deepcopy
 		if conn is None: 
 			conn = HTTPConnection(SERVER)
 		conn.request(method, pathname, params, headers)
+		#print >> sys.stderr, headers
 	except httplib.CannotSendRequest:
 		conn.connect()
 		conn.request(method, pathname, params, headers)
@@ -400,7 +402,8 @@ def register(iden=None, birthday=None, name=None,
 		return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
 	try:
 		return do_registration(iden, birthday, name, gender, nation, marriage, code, time, doc_id, dept_id)
-	except:
+	except Exception:
+		traceback.print_exc(Exception, file=sys.stderr)
 		return json.dumps({'status':'1', 'message':'Unknown Error'}, ensure_ascii=False)
 
 def do_registration(iden, birthday, name, gender, nation, marriage, code, time, doc_id, dept_id):
@@ -420,6 +423,7 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 	get_page(SERVER,pathname=WWW_PATH + '/NETREG1.asp',dataset={'mode':''})
 	doc_page = get_doc_page(dept_id, 'POST')
 	doc_page_soup = BeautifulSoup(doc_page)		#Use POST, the server seems to POST first to reg.
+	print >> sys.stderr, doc_page_soup.prettify()
 	all_input_tags = doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input')
 	for input_tag in all_input_tags:
 		dataset[input_tag['name']] = input_tag['value']
@@ -583,30 +587,33 @@ def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
 ####################!!!!!!!!!!!!!!!!!#WSGI!!!!!!!!!!!!!!!!!!#################
 #############################################################################
 urls = (
-    '/(\w+)/', 'Mainpage',
     '/(\w+)/dept', 'Dept',
     '/(\w+)/doctor', 'Doctor',
     '/(\w+)/register','Register',
     '/(\w+)/cancel_register','Cancel',
+	'/(\w+)/', 'BaseRequest',
+	'/(.+)', 'BaseRequest',
+
 )
 
 app = web.application(urls, globals(), autoreload=False)
 application = app.wsgifunc()
 
-class Base_handler():
+class BaseRequest:
 	def __init__(self):
-		request_path = re.search(r'(/\w+)/.*',web.ctx.path).group(1)
-		running = LOCAL_SERVER_PATH + request_path 
-		os.chdir(running)
-		print >> sys.stderr, 'Requesting:', request_path, 'and running at', os.getcwd()
-		set_env(running + '/doh.json')
 		web.header('Content-Type', 'text/html; charset=utf-8')
-
-class Mainpage(Base_handler):
+		self.request_path = re.search(r'(/\w+)/.*',web.ctx.path)
+		if self.request_path is not None:
+			self.request_path = self.request_path.group(1)
+			running = LOCAL_SERVER_PATH + self.request_path 
+			os.chdir(running)
+			#print >> sys.stderr, 'Requesting:', request_path, 'and running at', os.getcwd()
+			set_env(running + '/doh.json')
+	
 	def GET(self, name):
-		return 'cwd = ' + os.getcwd()
-				
-class Dept(Base_handler):
+		return u'行政院衛生署網路掛號格式API' +('' if self.request_path is None else (': '+ self.request_path[1:]))
+
+class Dept(BaseRequest):
 	def GET(self, name):
 		input_data = web.input(id=None)
 		try:
@@ -617,7 +624,7 @@ class Dept(Base_handler):
 			return dept_handler(input_data.id)
 			
 
-class Doctor(Base_handler):
+class Doctor(BaseRequest):
 	def GET(self, name):
 		input_data = web.input(id=None, deptId=None)
 		try:
@@ -627,7 +634,7 @@ class Doctor(Base_handler):
 			all_doc = get_all_doc(True)
 			return doc_handler(doc_id=input_data.id, dept_id=input_data.deptId)
 
-class Register(Base_handler):
+class Register(BaseRequest):
 	def GET(self, name):
 		input_data = web.input(doctor=None, dept=None, time=None, id=None, birthday=None, first=None, name= None,
 								gender=None, nation=None, marriage=None )
@@ -641,7 +648,7 @@ class Register(Base_handler):
 			return register(iden=input_data.id, birthday=input_data.birthday, name=input_data.name,
 							gender=input_data.gender, nation=input_data.nation, marriage=input_data.marriage,
 							time=input_data.time, doc_id=input_data.doctor, dept_id=input_data.dept)
-class Cancel(Base_handler):
+class Cancel(BaseRequest):
 	def GET(self, name):
 		input_data = web.input(doctor=None, dept=None, time=None, id=None, birthday=None, nation=None)
 		try:
