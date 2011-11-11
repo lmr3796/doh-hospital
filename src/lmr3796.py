@@ -399,7 +399,6 @@ def register(iden=None, birthday=None, name=None,
 		missing_arg = True
 		missing_arr.append({'marriage':u'婚姻狀況，未婚請填1，已婚請填2，離婚請填3，喪偶請填4'})
 
-	web.header('Content-Type', 'text/html')
 	if missing_arg:
 		return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
 	try:
