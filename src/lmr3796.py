@@ -510,7 +510,6 @@ def cancel(iden=None, nation=None, birthday=None, time=None, doc_id=None, dept_i
 
 	if missing_arg:
 		return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
-
 	return do_cancel_registration(iden, nation, birthday, time, dept_id)
 
 def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
@@ -520,11 +519,14 @@ def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
 	!!!!!!!!要先戳NETREG1.asp!!!!!!!
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	'''
-	get_page(SERVER,pathname=WWW_PATH + '/NETREG1.asp',dataset={'mode':''})
 	can_page_soup = BeautifulSoup(get_page(SERVER,pathname=CAN_PATH))
 	
 	dataset={}
-	all_input_tags = can_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input')
+	try:
+		all_input_tags = can_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input')
+	except:
+		print can_page_soup
+		raise
 	for input_tag in all_input_tags:
 		if input_tag.has_key('name'):
 			if input_tag.has_key('value'):
