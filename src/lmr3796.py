@@ -7,7 +7,8 @@ from BeautifulSoup import BeautifulSoup
 import sys, os, re, web, copy, traceback
 import json, time, datetime, pickle
 
-LOCAL_SERVER_PATH = '/srv/www/doh'
+#LOCAL_SERVER_PATH = '/srv/www/doh'
+LOCAL_SERVER_PATH = os.path.dirname(__file__)
 
 #Server Constants
 SERVER   ='' 
@@ -42,6 +43,7 @@ all_doc = None
 all_doc[0][doc_id] returns (name, dept_id, input_tag_set)
 all_doc[1][dept_id]['name'/'id']
 '''
+
 def set_env(path_file):
 	global SERVER, WWW_PATH, DEP_PATH, DOC_PATH, REG_PATH, CAN_PATH, NEED_CHECK_CODE
 	global conn, prev_page, cookieValue, all_dept, all_doc
@@ -142,7 +144,7 @@ def parse_dept_page(dept_page):
 	dept_by_code = {} 
 	for dept in dept_soup.findAll('a', attrs={'alt':u'''科別'''}):
 		dept_code = re.match( r"javascript:sendData\(\"(\w+)\"\)", dept['href']).group(1)
-		dept_name = dept.string[:-1]
+		dept_name = dept.string.strip()
 		dept_by_code[dept_code] = dept_name
 	return dept_by_code
 
@@ -636,7 +638,7 @@ class Doctor(BaseRequest):
 
 class Register(BaseRequest):
 	def GET(self, name):
-		input_data = web.input(doctor=None, dept=None, time=None, id=None, birthday=None, first=None, name= None,
+		input_data = web.input(doctor=None, dept=None, time=None, id=None, birthday=None, first=None, name=None,
 								gender=None, nation=None, marriage=None )
 		try:
 			return register(iden=input_data.id, birthday=input_data.birthday, name=input_data.name,
