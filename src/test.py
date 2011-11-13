@@ -19,9 +19,7 @@ def main():
 	print doc_id
 	time	= json.loads(lmr3796.doc_handler(dept_id=dept_id, doc_id=doc_id))[3]['time'][1]
 	print time
-
 	print lmr3796.register(iden=IDEN, birthday=BIRTH, name=NAME,gender=GENDER, nation=ORIGIN, marriage=MARRIAGE,time=time, doc_id=doc_id, dept_id=dept_id)
-	
 	print lmr3796.cancel(iden=IDEN, nation=ORIGIN, birthday=BIRTH, time=time, doc_id=doc_id, dept_id=dept_id, code=None)
 	return 0
 

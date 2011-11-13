@@ -68,6 +68,13 @@ def set_env(path_file):
 		conn.close()
 	conn = HTTPConnection(SERVER)
 	f.close()
+	#index page of it
+	u'''
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!!!!!!一定要先戳NETREG1.asp!!!!!
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	'''
+	get_page(SERVER,pathname=WWW_PATH + '/NETREG1.asp',dataset={'mode':''})
 
 def plot_http_response_info(response=None, sent_headers=None):
 	if response is None:
@@ -91,13 +98,15 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=copy.deepcopy
 	if hostname is None:
 		raise NameError('SERVER not defined')
 	params = urlencode(dataset)
-	print >> sys.stderr, method, hostname+pathname+(''if method == 'POST' else params)
 	if method == 'GET' and params != '':
 		pathname += '?'+params
-	elif method == 'POST':
+
+	print >> sys.stderr, method, hostname+pathname
+	
+	if method == 'POST':
 		headers['Content-Type'] = 'application/x-www-form-urlencoded'
 		print >> sys.stderr, params
-	
+
 	if cookieValue is not None:
 		headers['Cookie'] = cookieValue
 	
@@ -133,10 +142,11 @@ def get_dept_page():
 	get_page(pathname=WWW_PATH+'/ChooseDep.asp', reset_referer=True)
 	return get_page(SERVER, DEP_PATH)
 
-def get_doc_page(dept_id, method='GET'):
+def get_doc_page(dept_id, method='POST'):
 	dataset={'Department': dept_id,	'hfNetregStr': ''}
 	doc_page = get_page( hostname=SERVER, pathname=DOC_PATH, method=method, dataset=dataset)
 	return doc_page
+
 
 def parse_dept_page(dept_page):
 	#Encoding error on some pages....
@@ -412,19 +422,9 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 	#After getting all needed info
 	dataset={}
 	#There are some hidden input form needed to be fetched
-	u'''
-	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	!!!!!!這步很重要,沒做這步就射了   !!!!!!
-	!!!!!!一定要先用POST戳這個網頁一次!!!!!!
-	!!!!!!後面才能POST那個PatReg.asp  !!!!!!
-	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	'''
-	get_page(SERVER,pathname=WWW_PATH + '/NETREG1.asp',dataset={'mode':''})
-	doc_page = get_doc_page(dept_id, 'POST')
+	doc_page = get_doc_page(dept_id)
 	doc_page_soup = BeautifulSoup(doc_page)		#Use POST, the server seems to POST first to reg.
-	print >> sys.stderr, doc_page_soup.prettify()
+	#print >> sys.stderr, doc_page_soup.prettify()
 	all_input_tags = doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input')
 	for input_tag in all_input_tags:
 		dataset[input_tag['name']] = input_tag['value']
@@ -513,12 +513,6 @@ def cancel(iden=None, nation=None, birthday=None, time=None, doc_id=None, dept_i
 	return do_cancel_registration(iden, nation, birthday, time, dept_id)
 
 def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
-	u'''
-	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	!!!!!!!!跟Register一樣!!!!!!!!!!
-	!!!!!!!!要先戳NETREG1.asp!!!!!!!
-	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	'''
 	can_page_soup = BeautifulSoup(get_page(SERVER,pathname=CAN_PATH))
 	
 	dataset={}
