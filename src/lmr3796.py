@@ -101,11 +101,11 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=copy.deepcopy
 	if method == 'GET' and params != '':
 		pathname += '?'+params
 
-	print >> sys.stderr, method, hostname+pathname
+	#print >> sys.stderr, method, hostname+pathname
 	
 	if method == 'POST':
 		headers['Content-Type'] = 'application/x-www-form-urlencoded'
-		print >> sys.stderr, params
+		#print >> sys.stderr, params
 
 	if cookieValue is not None:
 		headers['Cookie'] = cookieValue
@@ -614,7 +614,7 @@ class BaseRequest:
 			running = LOCAL_SERVER_PATH + self.request_path 
 			os.chdir(running)
 			#print >> sys.stderr, 'Requesting:', request_path, 'and running at', os.getcwd()
-			set_env(running + '/doh.json')
+			set_env('./doh.json')
 	
 	def GET(self, name):
 		return u'行政院衛生署網路掛號格式API' +('' if self.request_path is None else (': '+ self.request_path[1:]))
