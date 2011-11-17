@@ -464,7 +464,7 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 			break;
 			
 	if slot_value is None:		#No matching slot for the doctor
-		return json.dumps({'status':'1', 'message':'此醫生無此看診時段'}, ensure_ascii=False)
+		return json.dumps({'status':'1', 'message':u'此醫生無此看診時段'}, ensure_ascii=False)
 		
 	dataset['optTemp'] = iden + slot_value + nation
 	dataset['opt'] = slot_value
@@ -474,7 +474,7 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 	button = doc_page_soup.find('input', attrs={'type':'submit','id':re.compile(r'''button(\w+)''')})	
 	dataset[button['id']]=button['value']
 	for key, value in dataset.iteritems():
-		dataset[key] = value.encode('big5')
+		dataset[key] = value.encode('big5','ignore')
 
 	succ_page_soup = BeautifulSoup(get_page( SERVER,pathname=REG_PATH, method='POST', headers=headers, dataset=dataset ))
 	try:
@@ -548,7 +548,7 @@ def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
 	
 	#Finish the POST FORM
 	for key, value in dataset.iteritems():
-		dataset[key] = value.encode('big5')
+		dataset[key] = value.encode('big5','ignore')
 	
 	can_page_soup = BeautifulSoup(get_page(SERVER,method='POST', dataset=dataset, pathname=REG_PATH))
 	'''
