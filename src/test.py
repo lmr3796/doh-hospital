@@ -38,11 +38,11 @@ def main():
 		time	= json.loads(lmr3796.doc_handler(dept_id=dept_id, doc_id=doc_id))[3]['time'][0]
 		#print time
 		try:
-			status =  lmr3796.register(iden=IDEN, birthday=BIRTH, name=NAME,gender=GENDER, nation=ORIGIN, marriage=MARRIAGE,time=time, doc_id=doc_id, dept_id=dept_id)
-			if json.loads(status)['status'] != '0':
+			status = json.loads(lmr3796.register(iden=IDEN, birthday=BIRTH, name=NAME,gender=GENDER, nation=ORIGIN, marriage=MARRIAGE,time=time, doc_id=doc_id, dept_id=dept_id))
+			if status['status'] != '0':
 				raise NameError('Register')
-			status = lmr3796.cancel(iden=IDEN, nation=ORIGIN, birthday=BIRTH, time=time, doc_id=doc_id, dept_id=dept_id, code=None)
-			if json.loads(status)['status'] != '0':
+			status = json.loads(lmr3796.cancel(iden=IDEN, nation=ORIGIN, birthday=BIRTH, time=time, doc_id=doc_id, dept_id=dept_id, code=None))
+			if status['status'] != '0':
 				raise NameError('Cancel')
 		except:
 			status_dump(hos, dept_id, doc_id, time, status)
