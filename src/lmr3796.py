@@ -480,7 +480,6 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 		msg = succ_page_soup.find('font', attrs={'class':'noteMsg'})
 		if msg is not None:
 			msg = unicode(msg.find(text=True));
-			print >> sys.stderr, msg
 			return json.dumps({'status':'1', 'message':msg})
 		else:
 			return json.dumps({'status':'1', 'message':'Unknown error.'})
