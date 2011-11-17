@@ -23,7 +23,7 @@ def make_cache(hos):
 	lmr3796.get_all_dept(True)
 	lmr3796.get_all_doc(True)
 	os.system('chown lmr3796:www-data *.pickle')
-	os.system('chmod 775 *.pickle')
+	os.system('chmod 664 *.pickle')
 
 def main():
 	print >> sys.stderr, 'Clear all cache files.'

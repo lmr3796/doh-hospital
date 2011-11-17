@@ -218,7 +218,7 @@ def get_all_dept_by_parsing(all_dept_file_name = ALL_DEPT_FILE, write_cache=True
 		all_dept_file = open(all_dept_file_name,'wb')
 		pickle.dump(result,all_dept_file)
 		all_dept_file.close()
-		os.system('chown 775 '+all_dept_file_name)
+		os.system('chown 664 '+all_dept_file_name)
 	except IOError:
 		print >> sys.stderr, "Can't write cache file"
 	return result
@@ -281,8 +281,8 @@ def get_all_doc_by_parsing(by_id_file_name = ALL_DOC_BY_ID_FILE, by_dept_file_na
 		pickle.dump(doc_by_dept, by_dept_file)
 		by_id_file.close()
 		by_id_file.close()
-		os.system('chown 775 '+by_dept_file_name)
-		os.system('chown 775 '+by_id_file_name)
+		os.system('chown 664 '+by_dept_file_name)
+		os.system('chown 664 '+by_id_file_name)
 	return doc_by_id, doc_by_dept
 
 def cache_file_avail(file_name):
