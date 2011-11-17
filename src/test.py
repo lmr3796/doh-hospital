@@ -14,7 +14,7 @@ HOS_NAME	=[
 				#'mil',
 				#'chcg',
 				#'chyi',
-				#'syh',
+				'syh',
 				#'tnh',
 				#'tygh',
 				#'taic'
@@ -45,7 +45,7 @@ def main():
 			if status['status'] != '0':
 				raise NameError('Cancel')
 		except:
-			status_dump(hos, dept_id, doc_id, time, status)
+			status_dump(hos, dept_id, doc_id, time, status['message'])
 			raise
 		os.chdir('..')
 	return 0
