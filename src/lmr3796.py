@@ -473,11 +473,17 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
 		dataset[key] = value.encode('big5')
 
 	succ_page_soup = BeautifulSoup(get_page( SERVER,pathname=REG_PATH, method='POST', headers=headers, dataset=dataset ))
-	number = succ_page_soup.find(text=re.compile(u'''就診序號''')).nextSibling.string.strip()
-	if number is not None:
+	try:
+		number = succ_page_soup.find(text=re.compile(u'''就診序號''')).nextSibling.string.strip()
 		return json.dumps({'status':'0', 'message':number})
-	else:
-		return json.dumps({'status':'1', 'message':'Unknown error.'})
+	except:
+		msg = succ_page_soup.find('font', attrs={'class':'noteMsg'})
+		if msg is not None:
+			msg = unicode(msg.find(text=True));
+			print >> sys.stderr, msg
+			return json.dumps({'status':'1', 'message':msg})
+		else:
+			return json.dumps({'status':'1', 'message':'Unknown error.'})
 
 def cancel(iden=None, nation=None, birthday=None, time=None, doc_id=None, dept_id=None, code=None):
 	if (dept_id is None) != (doc_id is None):
