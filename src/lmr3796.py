@@ -151,10 +151,6 @@ def get_doc_page(dept_id, method='POST'):
 
 def get_num_page():
 	return get_page(pathname=NUM_PATH)
-	#f = open('../../log/QryNum.htm')
-	#page = f.read()
-	#f.close()
-	#return page
 
 def parse_dept_page(dept_page):
 	#Encoding error on some pages....
@@ -583,7 +579,14 @@ def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
 
 def num_handler(dept_id):
 	global all_dept
+	try:
+		if all_dept is None:
+			all_dept = get_all_dept()
+	except:
+		raise
+
 	reverse_all_dept = {}
+	print >>sys.stderr, all_dept
 	for k,v in all_dept.iteritems():
 		reverse_all_dept[v] = k
 	page = BeautifulSoup(get_num_page())
@@ -629,6 +632,7 @@ urls = (
     '/(\w+)/doctor', 'Doctor',
     '/(\w+)/register','Register',
     '/(\w+)/cancel_register','Cancel',
+    '/(\w+)/number','Number',
 	'/(\w+)/', 'BaseRequest',
 	'/(.+)', 'BaseRequest',
 
@@ -702,7 +706,7 @@ class Number(BaseRequest):
 		input_data = web.input(dept=None)
 		try:
 			return num_handler(input_data.dept)
-		except KeyError
+		except KeyError:
 			all_dept = get_all_dept(True)
 			all_doc = get_all_doc(True)
 			return num_handler(input_data.dept)
