@@ -579,6 +579,9 @@ def num_handler(dept_id):
             all_dept = get_all_dept()
     except:
         raise
+    # 刪掉下面這行就會crash
+    # 如果你找出原因, 請寄ptt2站內信給lmr3796告訴我為什麼....
+    get_dept_page() 
     page = BeautifulSoup(get_num_page())
     depts = page.findAll('th', attrs={'class':'scheduleHead', 'id':re.compile('header\w+')})
     header_id = None
