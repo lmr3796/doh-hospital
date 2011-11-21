@@ -6,6 +6,6 @@ find $SERVER_PATH -type d | xargs chmod 774
 find $SERVER_PATH -name *doh.json | xargs chmod 644
 chmod 554 $SERVER_PATH/*.py
 chmod 554 $SERVER_PATH/*.sh
-chmod 444 $SERVER_PATH/Beautiful.py
+chmod 444 $SERVER_PATH/BeautifulSoup.py
 cd $SERVER_PATH
 ./cron_gen_cache.py
