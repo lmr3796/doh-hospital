@@ -697,6 +697,15 @@ class Cancel(BaseRequest):
 			all_doc = get_all_doc(True)
 			return cancel(iden=input_data.id, birthday=input_data.birthday, nation=input_data.nation, 
 							doc_id=input_data.doctor, dept_id=input_data.dept, time=input_data.time)
+class Number(BaseRequest):
+	def GET(self, name):
+		input_data = web.input(dept=None)
+		try:
+			return num_handler(input_data.dept)
+		except KeyError
+			all_dept = get_all_dept(True)
+			all_doc = get_all_doc(True)
+			return num_handler(input_data.dept)
 
 if __name__ == "__main__":
 	app.run()
