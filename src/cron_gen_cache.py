@@ -22,7 +22,7 @@ def make_cache(hos):
 	lmr3796.set_env(running + '/doh.json')
 	lmr3796.get_all_dept(True)
 	lmr3796.get_all_doc(True)
-	os.system('chown lmr3796:www-data *.pickle')
+    os.system('chown www-data:lmr3796 *.pickle')
 	os.system('chmod 664 *.pickle')
 
 def main():
