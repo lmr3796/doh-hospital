@@ -158,7 +158,7 @@ def parse_dept_page(dept_page):
     dept_by_code = {} 
     for dept in dept_soup.findAll('a', attrs={'alt':u'''科別'''}):
         dept_code = re.match( r"javascript:sendData\(\"(\w+)\"\)", dept['href']).group(1)
-        dept_name = dept.string.strip().replace(r'&nbsp;','')
+        dept_name = dept.string.strip().replace(r'&nbsp;','').replace(r' ','')
         dept_by_code[dept_code] = dept_name
     return dept_by_code
 
@@ -169,7 +169,7 @@ def parse_doc_page(doc_page):
     slots_by_doctor = {}
     for td in doc_soup.findAll('td',attrs={'class': re.compile('schedule\w'), 'headers': re.compile('b(\w+) a(\w+)')}):
         for input_tag in td.findAll('input'):
-            doc_name = input_tag.nextSibling.strip().replace(r'&nbsp;','')
+            doc_name = input_tag.nextSibling.strip().replace(r'&nbsp;','').replace(r' ','')
             if doc_name not in slots_by_doctor:
                 slots_by_doctor[doc_name] = set()
             slots_by_doctor[doc_name].add(str(input_tag))
