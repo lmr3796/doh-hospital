@@ -7,7 +7,6 @@ from BeautifulSoup import BeautifulSoup
 import sys, os, re, web, copy, traceback
 import json, time, datetime, pickle
 
-#LOCAL_SERVER_PATH = '/srv/www/doh'
 LOCAL_SERVER_PATH = os.path.dirname(__file__)
 
 #Server Constants
@@ -138,23 +137,23 @@ def get_page( hostname=SERVER, pathname='/', method='GET', headers=copy.deepcopy
         plot_http_response_info(response, headers)
         raise NameError( 'HTTP error code:' + str( response.status ) )
 
-    return response.read()
+    return response.read().decode('big5','ignore')
 
 def get_dept_page():
     get_page(pathname=WWW_PATH+'/ChooseDep.asp', reset_referer=True)
     return get_page(SERVER, DEP_PATH)
 
 def get_doc_page(dept_id, method='POST'):
-    dataset={'Department': dept_id,    'hfNetregStr': ''}
-    doc_page = get_page( hostname=SERVER, pathname=DOC_PATH, method=method, dataset=dataset)
+    dataset={'Department': dept_id, 'hfNetregStr': ''}
+    doc_page = get_page(hostname=SERVER, pathname=DOC_PATH, method=method, dataset=dataset)
     return doc_page
 
-def get_num_page():
+def get_num_page():  
     return get_page(pathname=NUM_PATH)
 
 def parse_dept_page(dept_page):
     #Encoding error on some pages....
-    dept_soup = BeautifulSoup(unicode(dept_page, 'big5'))
+    dept_soup = BeautifulSoup(unicode(dept_page))
     dept_by_code = {} 
     for dept in dept_soup.findAll('a', attrs={'alt':u'''科別'''}):
         dept_code = re.match( r"javascript:sendData\(\"(\w+)\"\)", dept['href']).group(1)
@@ -164,8 +163,7 @@ def parse_dept_page(dept_page):
 
 def parse_doc_page(doc_page):
     #Encoding error on some pages....
-    doc_soup = BeautifulSoup(unicode(doc_page, 'big5', 'ignore'))
-    space_pattern = re.compile(r'\s+')
+    doc_soup = BeautifulSoup(doc_page)
     slots_by_doctor = {}
     for td in doc_soup.findAll('td',attrs={'class': re.compile('schedule\w'), 'headers': re.compile('b(\w+) a(\w+)')}):
         for input_tag in td.findAll('input'):
@@ -581,42 +579,46 @@ def num_handler(dept_id):
             all_dept = get_all_dept()
     except:
         raise
-
-    reverse_all_dept = {}
-    for k,v in all_dept.iteritems():
-        reverse_all_dept[v] = k
     page = BeautifulSoup(get_num_page())
     depts = page.findAll('th', attrs={'class':'scheduleHead', 'id':re.compile('header\w+')})
-    result = {'status':'1', 'message':'Unknown Error'}
+    header_id = None
     for dept in depts:
-        dept_name = dept.text.strip()
-        if reverse_all_dept.has_key(dept_name) and reverse_all_dept[dept_name] == dept_id:
-            #print dept_name
-            dept_doc_td = page.find('td', attrs={'class':re.compile(r'schedule\w'), 'headers':dept['id']})
-            on_duty_doc = dept_doc_td.findAll('a')
-            if on_duty_doc is None or len(on_duty_doc) == 0:
-                # Failed finding number info
-                result['status'] = '2'
-                result['message'] = u'無該科診號資訊，可能不是該科看診時間'
-            else:
-                del result['message']
-                result['status'] = '0'
-                result['number'] = [] 
-                dataset = parse_hidden_input_tags_in_form(page.find('form', attrs={'name':'form1'}))
-                for doc in on_duty_doc:
-                    #simulating javascript:sendData()
-                    arg = re.match(r'javascript:sendData\("(.*?)","(.*?)","(.*?)","(.*?)","(.*?)"\)', doc['href'])
-                    dataset['mode']        = arg.group(1)
-                    dataset['opcode']    = arg.group(2)
-                    dataset['h_str']    = arg.group(3)
-                    dataset['opt']        = arg.group(4)
-                    dataset['DocName']    = arg.group(5)
-                    for k,v in dataset.iteritems():
-                        dataset[k] = v.encode('big5', 'ignore')
-                    number_page = BeautifulSoup(get_page(pathname=REG_PATH, dataset=dataset))
-                    doc_name = arg.group(5).strip()
-                    doc_num     = number_page.find(text=re.compile(u'目前看診號')).parent.font.text    
-                    result['number'].append({doc_name:doc_num})
+        if all_dept[dept_id] == dept.text.strip().replace(r' ','').replace(r'&nbsp;', ''):
+            header_id = dept['id']
+    dept_doc_td = page.find('td', attrs={'class':re.compile(r'schedule\w'), 'headers':header_id})
+    result = {}
+    on_duty_doc = []
+    for tag in dept_doc_td.findAll('a'):
+        match = re.match(re.compile(r'(.+)\(.*\).*'),tag.text)
+        if match is not None:
+            on_duty_doc.append(match.group(1).strip())
+
+    if not on_duty_doc:
+        result['status'] = '2'
+        result['message'] = u'無該科診號資訊，可能不是該科看診時間'
+    else:
+        result['status'] = '0'
+        result['number'] = []
+        for doc in on_duty_doc:
+            #Refetch the page to pretend newly come in
+            page = BeautifulSoup(get_num_page())
+            input_form = page.find('form', attrs={'name':'form1'})
+            dataset = parse_hidden_input_tags_in_form(input_form)
+            
+            #simulating javascript:sendData()
+            doc_tag = page.find(text=re.compile(doc)).parent
+            arg = re.match(r'javascript:sendData\("(.*?)","(.*?)","(.*?)","(.*?)","(.*?)"\)', doc_tag['href'])
+            dataset['mode']    = arg.group(1)
+            dataset['opcode']  = arg.group(2)
+            dataset['h_str']   = arg.group(3)
+            dataset['opt']     = arg.group(4)
+            dataset['DocName'] = arg.group(5)
+            for k,v in dataset.iteritems():
+                dataset[k] = v.encode('big5', 'ignore')
+            number_page = BeautifulSoup(get_page(pathname=REG_PATH, dataset=dataset, method='POST'))
+            doc_name = arg.group(5).strip()
+            doc_num  = number_page.find(text=re.compile(u'目前看診號')).parent.font.text
+            result['number'].append({doc_name:doc_num})
 
     return json.dumps(result,ensure_ascii=False)
 
