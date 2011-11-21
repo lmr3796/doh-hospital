@@ -16,7 +16,8 @@ WWW_PATH =''
 DEP_PATH ='' 
 DOC_PATH ='' 
 REG_PATH ='' 
-CAN_PATH ='' 
+CAN_PATH =''
+NUM_PATH =''
 NEED_CHECK_CODE = False
 #Cache Constants
 ALL_DEPT_FILE = 'all_dept.pickle'
@@ -45,7 +46,7 @@ all_doc[1][dept_id]['name'/'id']
 '''
 
 def set_env(path_file):
-	global SERVER, WWW_PATH, DEP_PATH, DOC_PATH, REG_PATH, CAN_PATH, NEED_CHECK_CODE
+	global SERVER, WWW_PATH, DEP_PATH, DOC_PATH, REG_PATH, CAN_PATH, NUM_PATH, NEED_CHECK_CODE
 	global conn, prev_page, cookieValue, all_dept, all_doc
 	f = open(path_file, 'r')
 	path = json.loads(f.read())
@@ -59,6 +60,7 @@ def set_env(path_file):
 	DOC_PATH = WWW_PATH + path['DOC_PATH']
 	REG_PATH = WWW_PATH + path['REG_PATH']
 	CAN_PATH = WWW_PATH + path['CAN_PATH']
+	NUM_PATH = WWW_PATH + path['NUM_PATH']
 	NEED_CHECK_CODE = need
 	cookieValue = None
 	prev_page = None
@@ -147,6 +149,12 @@ def get_doc_page(dept_id, method='POST'):
 	doc_page = get_page( hostname=SERVER, pathname=DOC_PATH, method=method, dataset=dataset)
 	return doc_page
 
+def get_num_page():
+	return get_page(pathname=NUM_PATH)
+	#f = open('../../log/QryNum.htm')
+	#page = f.read()
+	#f.close()
+	#return page
 
 def parse_dept_page(dept_page):
 	#Encoding error on some pages....
@@ -372,6 +380,14 @@ def doc_handler(doc_id=None, dept_id=None):
 		doc_arr = sorted(doc_arr, key=lambda doc: int(doc.keys()[0]))
 	return json.dumps(doc_arr, ensure_ascii=False)
 
+def parse_hidden_form(form):
+	dataset = {}
+	page = form['action']
+	method = form['method']
+	for input_tag in form.findAll('input'):
+		dataset[input_tag['name']] = input_tag['value']
+	return dataset, page, method 
+
 def register(iden=None, birthday=None, name=None,
 		gender=None, nation=None, marriage=None, code=None,
 		time=None, doc_id=None, dept_id=None):
@@ -589,8 +605,36 @@ def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
 	else:
 		return json.dumps({'status':'1', 'message':'Unknown error'})
 
+def num_handler(dept_id):
+	global all_dept
+	reverse_all_dept = {}
+	for k,v in all_dept.iteritems():
+		reverse_all_dept[v] = k
+	page = BeautifulSoup(get_num_page())
+	depts = page.findAll('th', attrs={'class':'scheduleHead', 'id':re.compile('header\w+')})
+	result = {'status':'1', 'message':'Unknown Error'}
+	for dept in depts:
+		dept_name = dept.text.strip()
+		if reverse_all_dept.has_key(dept_name) and reverse_all_dept[dept_name] == dept_id:
+			print dept_name
+			dept_doc_td = page.find('td', attrs={'class':'scheduleA', 'headers':dept['id']})
+			on_duty_doc = dept_doc_td.findAll('a', attrs={'alt':u'目前診間看診號查詢'})
+			if on_duty_doc is None:
+				# Failed finding number info
+				result['status'] = '2'
+				result['message'] = u'無該科診號資訊，可能不是該科看診時間'
+			else:
+				del result['message']
+				result['status'] = '0'
+				result['number'] = []
+				dataset = {}
+				for input_tag in 
+				for doc in on_duty_doc:
+					result['number'].append(doc.text)
+	return json.dumps(result,ensure_ascii=False)
+
 #############################################################################
-####################!!!!!!!!!!!!!!!!!#WSGI!!!!!!!!!!!!!!!!!!#################
+##################!!!!!!!!!!!!!!!!!#WSGI!!!!!!!!!!!!!!!!!!###################
 #############################################################################
 urls = (
     '/(\w+)/dept', 'Dept',
