@@ -361,7 +361,6 @@ def doc_handler(doc_id=None, dept_id=None):
 	if doc_id is not None:
 		if all_doc[0][doc_id][1] != dept_id:
 			raise NameError('No such doctor in this department')
-
 		doc_name, dept_id, input_tag_set = all_doc[0][doc_id]
 		doc_arr = [{'id': doc_id}, {'name': doc_name},{}, {'time': []}]
 		for input_tag in input_tag_set:
@@ -380,13 +379,12 @@ def doc_handler(doc_id=None, dept_id=None):
 		doc_arr = sorted(doc_arr, key=lambda doc: int(doc.keys()[0]))
 	return json.dumps(doc_arr, ensure_ascii=False)
 
-def parse_hidden_form(form):
+def parse_hidden_input_tags_in_form(form):
 	dataset = {}
-	page = form['action']
-	method = form['method']
 	for input_tag in form.findAll('input'):
-		dataset[input_tag['name']] = input_tag['value']
-	return dataset, page, method 
+		if input_tag.has_key('name'):
+			dataset[input_tag['name']] = '' if not input_tag.has_key('value') else input_tag['value']
+	return dataset 
 
 def register(iden=None, birthday=None, name=None,
 		gender=None, nation=None, marriage=None, code=None,
@@ -440,14 +438,10 @@ def register(iden=None, birthday=None, name=None,
 def do_registration(iden, birthday, name, gender, nation, marriage, code, time, doc_id, dept_id):
 	headers = basic_headers.copy()
 	#After getting all needed info
-	dataset={}
 	#There are some hidden input form needed to be fetched
 	doc_page = get_doc_page(dept_id)
 	doc_page_soup = BeautifulSoup(doc_page)		#Use POST, the server seems to POST first to reg.
-	#print >> sys.stderr, doc_page_soup.prettify()
-	all_input_tags = doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input')
-	for input_tag in all_input_tags:
-		dataset[input_tag['name']] = input_tag['value']
+	dataset = parse_hidden_input_tags_in_form(doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}))
 	dataset.update({
 				#Required patient info
 				'idno'		:iden,
@@ -539,20 +533,7 @@ def cancel(iden=None, nation=None, birthday=None, time=None, doc_id=None, dept_i
 
 def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
 	can_page_soup = BeautifulSoup(get_page(SERVER,pathname=CAN_PATH))
-	
-	dataset={}
-	try:
-		all_input_tags = can_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}).findAll('input')
-	except:
-		print can_page_soup
-		raise
-	for input_tag in all_input_tags:
-		if input_tag.has_key('name'):
-			if input_tag.has_key('value'):
-				dataset[input_tag['name']] = input_tag['value']
-			else:
-				dataset[input_tag['name']] = ''
-
+	dataset = parse_hidden_input_tags_in_form(can_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}))
 	dataset.update({
 				#Required patient info
 				'idno'		:iden,
@@ -571,7 +552,6 @@ def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
 		Processing Second Page
 	'''
 	dataset = {}
-	#get_page(pathname='/NETREG1.asp',dataset={'mode':''})
 	time_match = re.match(r'(\w+)-(\w+)-(\w+)-(\w+)',time)
 	YYY = str(int(time_match.group(1)) - 1911)
 	MM = time_match.group(2)
@@ -586,13 +566,9 @@ def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
 			continue
 		else:
 			slot_found = True
-			for input_tag in record.findAll('input'):
-				if input_tag.has_key('name'):
-					if input_tag.has_key('value'):
-						dataset[input_tag['name']] = input_tag['value']
-					else:
-						dataset[input_tag['name']] = '' 
+			dataset = parse_hidden_input_tags_in_form(record)
 			break
+
 	if not slot_found:
 		return json.dumps({'status':'1', 'message':u'無此掛號資訊'}, ensure_ascii=False)
 
@@ -616,9 +592,9 @@ def num_handler(dept_id):
 	for dept in depts:
 		dept_name = dept.text.strip()
 		if reverse_all_dept.has_key(dept_name) and reverse_all_dept[dept_name] == dept_id:
-			print dept_name
-			dept_doc_td = page.find('td', attrs={'class':'scheduleA', 'headers':dept['id']})
-			on_duty_doc = dept_doc_td.findAll('a', attrs={'alt':u'目前診間看診號查詢'})
+			#print dept_name
+			dept_doc_td = page.find('td', attrs={'class':re.compile(r'schedule\w'), 'headers':dept['id']})
+			on_duty_doc = dept_doc_td.findAll('a')
 			if on_duty_doc is None:
 				# Failed finding number info
 				result['status'] = '2'
@@ -626,11 +602,23 @@ def num_handler(dept_id):
 			else:
 				del result['message']
 				result['status'] = '0'
-				result['number'] = []
-				dataset = {}
-				for input_tag in 
+				result['number'] = [] 
+				dataset = parse_hidden_input_tags_in_form(page.find('form', attrs={'name':'form1'}))
 				for doc in on_duty_doc:
-					result['number'].append(doc.text)
+					#simulating javascript:sendData()
+					arg = re.match(r'javascript:sendData\("(.*?)","(.*?)","(.*?)","(.*?)","(.*?)"\)', doc['href'])
+					dataset['mode']		= arg.group(1)
+					dataset['opcode']	= arg.group(2)
+					dataset['h_str']	= arg.group(3)
+					dataset['opt']		= arg.group(4)
+					dataset['DocName']	= arg.group(5)
+					for k,v in dataset.iteritems():
+						dataset[k] = v.encode('big5', 'ignore')
+					number_page = BeautifulSoup(get_page(pathname=REG_PATH, dataset=dataset))
+					doc_name = arg.group(5).strip()
+					doc_num	 = number_page.find(text=re.compile(u'目前看診號')).parent.font.text	
+					result['number'].append({doc_name:doc_num})
+
 	return json.dumps(result,ensure_ascii=False)
 
 #############################################################################

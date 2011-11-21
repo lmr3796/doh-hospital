@@ -5,5 +5,6 @@
 "DOC_PATH": "/FirstReg.asp",
 "REG_PATH": "/PatReg.asp",
 "CAN_PATH": "/regcan.asp",
+"NUM_PATH": "/QryNum.asp",
 "NEED_CHECK_CODE": "False"
 }
