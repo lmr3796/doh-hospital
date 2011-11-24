@@ -383,10 +383,25 @@ def parse_hidden_input_tags_in_form(form):
             dataset[input_tag['name']] = '' if not input_tag.has_key('value') else input_tag['value']
     return dataset 
 
-def register(iden=None, birthday=None, name=None,
-        gender=None, nation=None, marriage=None, code=None,
-        time=None, doc_id=None, dept_id=None):
-    if (dept_id is None) != (doc_id is None):
+def get_check_code():
+    #TODO: Still a dummy
+    return ''
+def check_valid_reg_info(info, required_info):
+    missing_arr=[]
+    for item in required_info:
+        if not info.has_key(item):
+            if item == 'code':
+                if NEED_CHECK_CODE:
+                    missing_arg = True 
+                    missing_arr.append({'code':'http://'+get_check_code()})
+                continue
+            else:
+                missing_arg = True
+                missing_arr.append({item: required_info[item]})
+    return missing_arr
+
+def register(info):
+    if info.has_key('dept_id') != info.has_key('doc_id'):
         raise NameError('Bad dept_id or doc_id!')
 
     global all_dept, all_doc
@@ -395,60 +410,52 @@ def register(iden=None, birthday=None, name=None,
             all_doc = get_all_doc()
     except:
         raise NameError('Error connecting to server.')
-
-    missing_arg = False
-    missing_arr = []
-    if iden is None:
-        missing_arg = True
-        missing_arr.append({'id':u'身分證字號'})
-    if birthday is None:
-        missing_arg = True
-        missing_arr.append({'birthday':u'生日'})
-    if time is None:
-        missing_arg = True
-        missing_arr.append({'time':u'看診時段'})
-
-    if name is None:
-        missing_arg = True
-        missing_arr.append({'name':u'姓名'})
-    if gender is None:
-        missing_arg = True
-        missing_arr.append({'gender':u'性別，男性填1女性填2'})
-    if nation is None:
-        missing_arg = True
-        missing_arr.append({'nation':u'本國外國，本國請填1外國請填2'})
-    if NEED_CHECK_CODE and code is None:
-        missing_arg = True
-        missing_arr.append({'code':'code:http://ooxxx.ooxx'})
-    if marriage is None:
-        missing_arg = True
-        missing_arr.append({'marriage':u'婚姻狀況，未婚請填1，已婚請填2，離婚請填3，喪偶請填4'})
-
-    if missing_arg:
+    required_info = {
+            'id'        :u'身分證字號',
+            'birthday'  :u'生日',
+            'time'      :u'看診時段',
+            'name'      :u'姓名',
+            'gender'    :u'性別，男性填1女性填2',
+            'nation'    :u'本國外國，本國請填1外國請填2',
+            'code'      :u'code:http://ooxxx.ooxx',
+            'marriage'  :u'婚姻狀況，未婚請填1，已婚請填2，離婚請填3，喪偶請填4',
+            }
+    missing_arr = check_valid_reg_info(info, required_info)
+    if missing_arr:
         return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
     try:
-        return do_registration(iden, birthday, name, gender, nation, marriage, code, time, doc_id, dept_id)
+        return do_registration(info)
     except Exception:
         traceback.print_exc(Exception, file=sys.stderr)
         return json.dumps({'status':'1', 'message':'Unknown Error'}, ensure_ascii=False)
 
-def do_registration(iden, birthday, name, gender, nation, marriage, code, time, doc_id, dept_id):
+def do_registration(info):
+    iden = info['id']
+    birthday=info['birthday']
+    name=info['name']
+    gender=info['gender']
+    nation=info['nation']
+    marriage=info['marriage']
+    time=info['time']
+    doc_id=info['doc_id']
+    dept_id=info['dept_id']
+    code=None if not info.has_key('code') else info['code']
+
     headers = basic_headers.copy()
-    #After getting all needed info
     #There are some hidden input form needed to be fetched
     doc_page = get_doc_page(dept_id)
     doc_page_soup = BeautifulSoup(doc_page)        #Use POST, the server seems to POST first to reg.
     dataset = parse_hidden_input_tags_in_form(doc_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}))
     dataset.update({
                 #Required patient info
-                'idno'        :iden,
+                'idno'      :iden,
                 'BirthY'    :unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(1)) - 1911),
                 'BirthM'    :unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(2))),
                 'BirthD'    :unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(3))),
-                'PatName'    :name,
-                'sex'        :gender,
+                'PatName'   :name,
+                'sex'       :gender,
                 'origid'    :nation,
-                'marriage'    :marriage
+                'marriage'  :marriage
             })
     #Simulate the javascript and fill in the missing hidden value
     '''
@@ -463,9 +470,9 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
         if time_match is None:
             return json.dumps({'status':'1', 'message':'Wrong time format given by API'}, ensure_ascii=False)
         YYYY = time_match.group(1)
-        MM     = time_match.group(2)
-        DD     = time_match.group(3)
-        X     = time_match.group(4)
+        MM   = time_match.group(2)
+        DD   = time_match.group(3)
+        X    = time_match.group(4)
         if parse_doc_input_tag(tag)[0] == (YYYY,MM,DD,X):
             slot_value = re.search(r'''value\s*=\s*"(.+?)"''', tag).group(1)
             break;
@@ -495,8 +502,8 @@ def do_registration(iden, birthday, name, gender, nation, marriage, code, time, 
         else:
             return json.dumps({'status':'1', 'message':'Unknown error.'})
 
-def cancel(iden=None, nation=None, birthday=None, time=None, doc_id=None, dept_id=None, code=None):
-    if (dept_id is None) != (doc_id is None):
+def cancel(info):
+    if info.has_key('dept_id') != info.has_key('doc_id'):
         raise NameError('Bad dept_id or doc_id!')
 
     global all_dept, all_doc
@@ -506,29 +513,28 @@ def cancel(iden=None, nation=None, birthday=None, time=None, doc_id=None, dept_i
     except:
         raise NameError('Error connecting to server.')
 
-    missing_arg = False
-    missing_arr = []
-    if iden is None:
-        missing_arg = True
-        missing_arr.append({'id':u'身分證字號'})
-    if birthday is None:
-        missing_arg = True
-        missing_arr.append({'birthday':u'生日'})
-    if time is None:
-        missing_arg = True
-        missing_arr.append({'time':u'看診時段'})
-    if nation is None:
-        missing_arg = True
-        missing_arr.append({'nation':u'本國外國，本國請填1外國請填2'})
-    if NEED_CHECK_CODE and code is None:
-        missing_arg = True
-        missing_arr.append({'code':'code:http://ooxxx.ooxx'})
-
-    if missing_arg:
+    required_info = {
+        'id':u'身分證字號',
+        'birthday':u'生日',
+        'time':u'看診時段',
+        'nation':u'本國外國，本國請填1外國請填2',
+        'code':'code:http://ooxxx.ooxx',
+    }
+    missing_arr = check_valid_reg_info(info, required_info)
+    if missing_arr:
         return json.dumps({'status':'2', 'message':missing_arr}, ensure_ascii=False)
-    return do_cancel_registration(iden, nation, birthday, time, dept_id)
+    return do_cancel_registration(info)
 
-def do_cancel_registration(iden, nation, birthday, time, dept_id, code=None):
+def do_cancel_registration(info):
+    iden = info['id']
+    birthday=info['birthday']
+    nation=info['nation']
+    marriage=info['marriage']
+    time=info['time']
+    doc_id=info['doc_id']
+    dept_id=info['dept_id']
+    code=None if not info.has_key('code') else info['code']
+
     can_page_soup = BeautifulSoup(get_page(SERVER,pathname=CAN_PATH))
     dataset = parse_hidden_input_tags_in_form(can_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}))
     dataset.update({
