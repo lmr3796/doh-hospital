@@ -18,6 +18,7 @@ REG_PATH =''
 CAN_PATH =''
 NUM_PATH =''
 NEED_CHECK_CODE = False
+HTTPS = True
 #Cache Constants
 ALL_DEPT_FILE = 'all_dept.pickle'
 ALL_DOC_BY_ID_FILE = 'all_doc_by_id.pickle'
@@ -53,6 +54,10 @@ def set_env(path_file):
         need = True
     else:
         need = False 
+    if path['HTTPS'] == 'True':
+        https = True
+    else:
+        https = False 
     SERVER   = path['SERVER']
     WWW_PATH = path['WWW_PATH']
     DEP_PATH = WWW_PATH + path['DEP_PATH']
@@ -61,6 +66,7 @@ def set_env(path_file):
     CAN_PATH = WWW_PATH + path['CAN_PATH']
     NUM_PATH = WWW_PATH + path['NUM_PATH']
     NEED_CHECK_CODE = need
+    HTTPS = https
     cookieValue = None
     prev_page = None
     all_dept = None
@@ -595,7 +601,7 @@ def num_handler(dept_id):
         match = re.match(re.compile(r'(.+)\(.*\).*'),tag.text)
         if match is not None:
             on_duty_doc.append(match.group(1).strip())
-
+        
     if not on_duty_doc:
         result['status'] = '2'
         result['message'] = u'無該科診號資訊，可能不是該科看診時間'

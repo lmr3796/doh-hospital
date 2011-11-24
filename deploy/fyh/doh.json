@@ -1,6 +1,6 @@
 {
-"SERVER": "163.29.77.253",
-"WWW_PATH": "/netreg",
+"SERVER": "web1.fyh.doh.gov.tw",
+"WWW_PATH": "/wnetreg",
 "DEP_PATH": "/CHOOSEDEP1.ASP",
 "DOC_PATH": "/FirstReg.asp",
 "REG_PATH": "/PatReg.asp",
