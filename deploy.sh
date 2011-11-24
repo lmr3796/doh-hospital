@@ -9,3 +9,4 @@ chmod 554 $SERVER_PATH/*.sh
 chmod 444 $SERVER_PATH/BeautifulSoup.py
 cd $SERVER_PATH
 ./cron_gen_cache.py
+exit 0
