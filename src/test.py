@@ -23,13 +23,14 @@ HOS_NAME    =[
                 #'nant',
                 #'potz',
                 #'pntn',
-                #'lslp',
+                'lslp',
                 #'syh',
                 #'taic',
                 #'tnh',
                 #'tygh',
             ]
-def status_dump(hos, dept_id, doc_id, time, status):
+status = None
+def status_dump(hos, dept_id, doc_id, time):
     global status
     print >> sys.stderr, '['+hos+']'
     print >> sys.stderr, dept_id 
