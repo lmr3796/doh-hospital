@@ -18,7 +18,7 @@ HOS_NAME    =[
                 #'ccd',
                 #'chcg',
                 #'chis'
-                'chyi',
+                #'chyi',
                 #'fyh',
                 #'nant',
                 #'potz',
@@ -30,15 +30,9 @@ HOS_NAME    =[
                 'ttpc',
                 #'tygh',
             ]
-<<<<<<< HEAD
 def status_dump(hos, dept_id, doc_id, time, status):
-    print >> sys.stderr, '['+hos+']'
-=======
-status = None
-def status_dump(hos, dept_id, doc_id, time):
     global status
-    print >> sys.stderr, hos
->>>>>>> 0c4b65f4f7449d4faf9a25f35db45d8c86f17d12
+    print >> sys.stderr, '['+hos+']'
     print >> sys.stderr, dept_id 
     print >> sys.stderr, doc_id
     print >> sys.stderr, time
