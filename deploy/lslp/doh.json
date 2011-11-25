@@ -1,7 +1,7 @@
 {
 "SERVER": "netreg.lslp.doh.gov.tw",
 "WWW_PATH": "/netreg",
-"DEP_PATH": "/ChooseDep.asp",
+"DEP_PATH": "/CHOOSEDEP1.ASP",
 "DOC_PATH": "/FirstReg.asp",
 "REG_PATH": "/PatReg.asp",
 "CAN_PATH": "/regcan.asp",
