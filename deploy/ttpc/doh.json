@@ -1,0 +1,11 @@
+{
+"SERVER": "server.ttpc.doh.gov.tw",
+"WWW_PATH": "/netreg",
+"DEP_PATH": "/ChooseDep.asp",
+"DOC_PATH": "/FirstReg.asp",
+"REG_PATH": "/PatReg.asp",
+"CAN_PATH": "/regcan.asp",
+"NUM_PATH": "/QryNum.asp",
+"NEED_CHECK_CODE": "False",
+"HTTPS": "False"
+}
