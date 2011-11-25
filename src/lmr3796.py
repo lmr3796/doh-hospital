@@ -2,6 +2,7 @@
 #coding=utf8
 import httplib
 from httplib import HTTPConnection
+from httplib import HTTPSConnection
 from urllib import urlencode
 from BeautifulSoup import BeautifulSoup
 import sys, os, re, web, copy, traceback
@@ -73,7 +74,7 @@ def set_env(path_file):
     all_doc = None
     if conn is not None and isinstance(conn, HTTPConnection):
         conn.close()
-    conn = HTTPConnection(SERVER)
+    conn = HTTPConnection(SERVER) if not https else HTTPSConnection(SERVER)
     f.close()
     #index page of it
     u'''

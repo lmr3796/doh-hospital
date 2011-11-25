@@ -13,21 +13,23 @@ GENDER      =    '1'
 
 HOS_NAME    =[
                 #'mil',
+                #'ccd',
                 #'chcg',
                 #'chis'
                 #'chyi',
                 #'fyh',
                 #'nant',
-                #'potz',    #https
+                #'potz',
                 #'pntn',
                 #'lslp',
                 #'syh',
                 #'taic',
                 #'tnh',
+                'ttpc',
                 #'tygh',
             ]
 def status_dump(hos, dept_id, doc_id, time, status):
-    print >> sys.stderr, hos
+    print >> sys.stderr, '['+hos+']'
     print >> sys.stderr, dept_id 
     print >> sys.stderr, doc_id
     print >> sys.stderr, time
@@ -41,7 +43,6 @@ def main():
         os.chdir(hos)
         status = None
         lmr3796.set_env('./doh.json')
-        print json.loads(lmr3796.dept_handler())
         dept_id = json.loads(lmr3796.dept_handler())[2].items()[0][0]
         #dept_id = '0210'
         doc_id  = json.loads(lmr3796.dept_handler(dept_id))[2]['doctor'][0].items()[0][0]

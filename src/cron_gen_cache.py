@@ -32,7 +32,6 @@ def main():
                 make_cache(hos)
             except BaseException as e:
                 fail_list.append((hos,e))
-        print >> sys.stderr, 'All hospitals done!'
         if not fail_list:
             errlog = open('cron_gen_cache.log','a')
             for hos, e in fail_list:
@@ -42,6 +41,9 @@ def main():
                 print >> errlog, ''
             errlog.close()
             return 1
+        else:
+            print >> sys.stderr, 'All hospitals done!'
+
     return 0
 
 if __name__ == '__main__':
