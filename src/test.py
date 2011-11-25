@@ -27,7 +27,6 @@ HOS_NAME    =[
                 #'syh',
                 #'taic',
                 #'tnh',
-                'ttpc',
                 #'tygh',
             ]
 def status_dump(hos, dept_id, doc_id, time, status):

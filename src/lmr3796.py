@@ -32,7 +32,7 @@ basic_headers = {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Encoding': 'gzip,deflate',
         'Accept-Language': 'zh-TW,en-us;q=0.7,en;q=0.3',
-        'Accept-Charset': 'UTF-8,*'
+        'Accept-Charset': 'Big5,*'
         }
 basic_dataset = {}
 conn = None        #A HTTPConnection
@@ -159,7 +159,7 @@ def get_num_page():
     return get_page(pathname=NUM_PATH)
 
 def parse_dept_page(dept_page):
-    #Encoding error on some pages....
+    #Encoding error on some pages...
     dept_soup = BeautifulSoup(unicode(dept_page))
     dept_by_code = {} 
     for dept in dept_soup.findAll('a', attrs={'alt':u'''科別'''}):
