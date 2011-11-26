@@ -530,7 +530,6 @@ def do_cancel_registration(info):
     iden = info['id']
     birthday=info['birthday']
     nation=info['nation']
-    marriage=info['marriage']
     time=info['time']
     doc_id=info['doc_id']
     dept_id=info['dept_id']
@@ -540,7 +539,7 @@ def do_cancel_registration(info):
     dataset = parse_hidden_input_tags_in_form(can_page_soup.find('form', attrs={'method':'POST','name':'RegFrm'}))
     dataset.update({
                 #Required patient info
-                'idno'        :iden,
+                'idno'      :iden,
                 'origid'    :nation,
                 'BirthY'    :unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(1)) - 1911),
                 'BirthM'    :unicode(int(re.match(r'''(\w+)-(\w+)-(\w+)''', birthday).group(2))),
@@ -694,27 +693,48 @@ class Register(BaseRequest):
     def GET(self, name):
         input_data = web.input(doctor=None, dept=None, time=None, id=None, birthday=None, first=None, name=None,
                                 gender=None, nation=None, marriage=None )
+        info={}    
+        info['id']=input_data.id
+        info['birthday']=input_data.birthday
+        info['name']=input_data.name
+        info['gender']=input_data.gender
+        info['nation']=input_data.nation
+        info['marriage']=input_data.marriage
+        info['time']=input_data.time
+        info['doc_id']=input_data.doctor
+        info['dept_id']=input_data.dept
         try:
-            return register(iden=input_data.id, birthday=input_data.birthday, name=input_data.name,
-                            gender=input_data.gender, nation=input_data.nation, marriage=input_data.marriage,
-                            time=input_data.time, doc_id=input_data.doctor, dept_id=input_data.dept)
+            return register(info)
+            #return register(iden=input_data.id, birthday=input_data.birthday, name=input_data.name,
+            #                gender=input_data.gender, nation=input_data.nation, marriage=input_data.marriage,
+            #                time=input_data.time, doc_id=input_data.doctor, dept_id=input_data.dept)
         except KeyError:
             all_dept = get_all_dept(True)
             all_doc = get_all_doc(True)
-            return register(iden=input_data.id, birthday=input_data.birthday, name=input_data.name,
-                            gender=input_data.gender, nation=input_data.nation, marriage=input_data.marriage,
-                            time=input_data.time, doc_id=input_data.doctor, dept_id=input_data.dept)
+            return register(info)
+            #return register(iden=input_data.id, birthday=input_data.birthday, name=input_data.name,
+            #                gender=input_data.gender, nation=input_data.nation, marriage=input_data.marriage,
+            #                time=input_data.time, doc_id=input_data.doctor, dept_id=input_data.dept)
 class Cancel(BaseRequest):
     def GET(self, name):
         input_data = web.input(doctor=None, dept=None, time=None, id=None, birthday=None, nation=None)
+        info = {}
+        info['id']=input_data.id
+        info['birthday']=input_data.birthday
+        info['nation']=input_data.nation 
+        info['doc_id']=input_data.doctor 
+        info['dept_id']=input_data.dept
+        info['time']=input_data.time
         try:
-            return cancel(iden=input_data.id, birthday=input_data.birthday, nation=input_data.nation, 
-                            doc_id=input_data.doctor, dept_id=input_data.dept, time=input_data.time)
+            return cancel(info)
+            #return cancel(iden=input_data.id, birthday=input_data.birthday, nation=input_data.nation, 
+            #                doc_id=input_data.doctor, dept_id=input_data.dept, time=input_data.time)
         except KeyError:
             all_dept = get_all_dept(True)
             all_doc = get_all_doc(True)
-            return cancel(iden=input_data.id, birthday=input_data.birthday, nation=input_data.nation, 
-                            doc_id=input_data.doctor, dept_id=input_data.dept, time=input_data.time)
+            return cancel(info)
+            #return cancel(iden=input_data.id, birthday=input_data.birthday, nation=input_data.nation, 
+            #                doc_id=input_data.doctor, dept_id=input_data.dept, time=input_data.time)
 class Number(BaseRequest):
     def GET(self, name):
         input_data = web.input(dept=None)

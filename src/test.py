@@ -14,15 +14,15 @@ person_info = {
 }
 
 HOS_NAME    =[
-                #'mil',
+                'mil',
                 #'ccd',
-                #'chcg',
-                #'chis'
-                #'chyi',
-                #'fyh',
-                #'nant',
-                #'potz',
-                #'pntn',
+                'chcg',
+                'chis'
+                'chyi',
+                'fyh',
+                'nant',
+                'potz',
+                'pntn',
                 'lslp',
                 #'syh',
                 #'taic',
